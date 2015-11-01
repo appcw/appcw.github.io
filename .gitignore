@@ -2,3 +2,4 @@ components
 src
 node_modules
 gulpfile.js
+debug.html

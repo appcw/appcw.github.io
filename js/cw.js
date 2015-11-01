@@ -20681,7 +20681,7 @@ cwapp.mainController = {
             '<tr><td>Created</td><td>' + $.format.date(ctrl.items[i].created, "M/d/yyyy h:mm:ss a") + '</td></tr>' +
             '</tody></table>';
 
-            if (ctrl.user.login == ctrl.items[i].user.login)
+            if (ctrl.user().login == ctrl.items[i].user.login)
                 popover += '<a class="waves-effect waves-light btn red delete-btn" onclick="ctrl.deleteItem(' + i + ')">Delete</a>';
 
             popover += '</div>';
