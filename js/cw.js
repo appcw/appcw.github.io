@@ -1,1627 +1,2320 @@
-/*!
- * Bootstrap v3.3.5 (http://getbootstrap.com)
- * Copyright 2011-2015 Twitter, Inc.
- * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
- */
-
-/*!
- * Generated using the Bootstrap Customizer (http://getbootstrap.com/customize/?id=9bbd9d2aa6ec11011101)
- * Config saved to config.json and https://gist.github.com/9bbd9d2aa6ec11011101
- */
-if (typeof jQuery === 'undefined') {
-  throw new Error('Bootstrap\'s JavaScript requires jQuery')
-}
-+function ($) {
-  'use strict';
-  var version = $.fn.jquery.split(' ')[0].split('.')
-  if ((version[0] < 2 && version[1] < 9) || (version[0] == 1 && version[1] == 9 && version[2] < 1)) {
-    throw new Error('Bootstrap\'s JavaScript requires jQuery version 1.9.1 or higher')
-  }
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: tooltip.js v3.3.5
- * http://getbootstrap.com/javascript/#tooltip
- * Inspired by the original jQuery.tipsy by Jason Frame
- * ========================================================================
- * Copyright 2011-2015 Twitter, Inc.
- * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
- * ======================================================================== */
-
-
-+function ($) {
-  'use strict';
-
-  // TOOLTIP PUBLIC CLASS DEFINITION
-  // ===============================
-
-  var Tooltip = function (element, options) {
-    this.type       = null
-    this.options    = null
-    this.enabled    = null
-    this.timeout    = null
-    this.hoverState = null
-    this.$element   = null
-    this.inState    = null
-
-    this.init('tooltip', element, options)
-  }
-
-  Tooltip.VERSION  = '3.3.5'
-
-  Tooltip.TRANSITION_DURATION = 150
-
-  Tooltip.DEFAULTS = {
-    animation: true,
-    placement: 'top',
-    selector: false,
-    template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
-    trigger: 'hover focus',
-    title: '',
-    delay: 0,
-    html: false,
-    container: false,
-    viewport: {
-      selector: 'body',
-      padding: 0
-    }
-  }
-
-  Tooltip.prototype.init = function (type, element, options) {
-    this.enabled   = true
-    this.type      = type
-    this.$element  = $(element)
-    this.options   = this.getOptions(options)
-    this.$viewport = this.options.viewport && $($.isFunction(this.options.viewport) ? this.options.viewport.call(this, this.$element) : (this.options.viewport.selector || this.options.viewport))
-    this.inState   = { click: false, hover: false, focus: false }
-
-    if (this.$element[0] instanceof document.constructor && !this.options.selector) {
-      throw new Error('`selector` option must be specified when initializing ' + this.type + ' on the window.document object!')
-    }
-
-    var triggers = this.options.trigger.split(' ')
-
-    for (var i = triggers.length; i--;) {
-      var trigger = triggers[i]
-
-      if (trigger == 'click') {
-        this.$element.on('click.' + this.type, this.options.selector, $.proxy(this.toggle, this))
-      } else if (trigger != 'manual') {
-        var eventIn  = trigger == 'hover' ? 'mouseenter' : 'focusin'
-        var eventOut = trigger == 'hover' ? 'mouseleave' : 'focusout'
-
-        this.$element.on(eventIn  + '.' + this.type, this.options.selector, $.proxy(this.enter, this))
-        this.$element.on(eventOut + '.' + this.type, this.options.selector, $.proxy(this.leave, this))
-      }
-    }
-
-    this.options.selector ?
-      (this._options = $.extend({}, this.options, { trigger: 'manual', selector: '' })) :
-      this.fixTitle()
-  }
+var m = (function app(window, undefined) {
 
-  Tooltip.prototype.getDefaults = function () {
-    return Tooltip.DEFAULTS
-  }
+	var OBJECT = "[object Object]", ARRAY = "[object Array]", STRING = "[object String]", FUNCTION = "function";
 
-  Tooltip.prototype.getOptions = function (options) {
-    options = $.extend({}, this.getDefaults(), this.$element.data(), options)
+	var type = {}.toString;
 
-    if (options.delay && typeof options.delay == 'number') {
-      options.delay = {
-        show: options.delay,
-        hide: options.delay
-      }
-    }
+	var parser = /(?:(^|#|\.)([^#\.\[\]]+))|(\[.+?\])/g, attrParser = /\[(.+?)(?:=("|'|)(.*?)\2)?\]/;
 
-    return options
-  }
+	var voidElements = /^(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|KEYGEN|LINK|META|PARAM|SOURCE|TRACK|WBR)$/;
 
-  Tooltip.prototype.getDelegateOptions = function () {
-    var options  = {}
-    var defaults = this.getDefaults()
+	var noop = function() {}
 
-    this._options && $.each(this._options, function (key, value) {
-      if (defaults[key] != value) options[key] = value
-    })
 
-    return options
-  }
 
-  Tooltip.prototype.enter = function (obj) {
-    var self = obj instanceof this.constructor ?
-      obj : $(obj.currentTarget).data('bs.' + this.type)
+	// caching commonly used variables
 
-    if (!self) {
-      self = new this.constructor(obj.currentTarget, this.getDelegateOptions())
-      $(obj.currentTarget).data('bs.' + this.type, self)
-    }
+	var $document, $location, $requestAnimationFrame, $cancelAnimationFrame;
 
-    if (obj instanceof $.Event) {
-      self.inState[obj.type == 'focusin' ? 'focus' : 'hover'] = true
-    }
 
-    if (self.tip().hasClass('in') || self.hoverState == 'in') {
-      self.hoverState = 'in'
-      return
-    }
 
-    clearTimeout(self.timeout)
+	// self invoking function needed because of the way mocks work
 
-    self.hoverState = 'in'
+	function initialize(window){
 
-    if (!self.options.delay || !self.options.delay.show) return self.show()
+		$document = window.document;
 
-    self.timeout = setTimeout(function () {
-      if (self.hoverState == 'in') self.show()
-    }, self.options.delay.show)
-  }
+		$location = window.location;
 
-  Tooltip.prototype.isInStateTrue = function () {
-    for (var key in this.inState) {
-      if (this.inState[key]) return true
-    }
+		$cancelAnimationFrame = window.cancelAnimationFrame || window.clearTimeout;
 
-    return false
-  }
+		$requestAnimationFrame = window.requestAnimationFrame || window.setTimeout;
 
-  Tooltip.prototype.leave = function (obj) {
-    var self = obj instanceof this.constructor ?
-      obj : $(obj.currentTarget).data('bs.' + this.type)
+	}
 
-    if (!self) {
-      self = new this.constructor(obj.currentTarget, this.getDelegateOptions())
-      $(obj.currentTarget).data('bs.' + this.type, self)
-    }
 
-    if (obj instanceof $.Event) {
-      self.inState[obj.type == 'focusout' ? 'focus' : 'hover'] = false
-    }
 
-    if (self.isInStateTrue()) return
+	initialize(window);
 
-    clearTimeout(self.timeout)
 
-    self.hoverState = 'out'
 
-    if (!self.options.delay || !self.options.delay.hide) return self.hide()
 
-    self.timeout = setTimeout(function () {
-      if (self.hoverState == 'out') self.hide()
-    }, self.options.delay.hide)
-  }
 
-  Tooltip.prototype.show = function () {
-    var e = $.Event('show.bs.' + this.type)
+	/**
 
-    if (this.hasContent() && this.enabled) {
-      this.$element.trigger(e)
+	 * @typedef {String} Tag
 
-      var inDom = $.contains(this.$element[0].ownerDocument.documentElement, this.$element[0])
-      if (e.isDefaultPrevented() || !inDom) return
-      var that = this
+	 * A string that looks like -> div.classname#id[param=one][param2=two]
 
-      var $tip = this.tip()
+	 * Which describes a DOM node
 
-      var tipId = this.getUID(this.type)
+	 */
 
-      this.setContent()
-      $tip.attr('id', tipId)
-      this.$element.attr('aria-describedby', tipId)
 
-      if (this.options.animation) $tip.addClass('fade')
 
-      var placement = typeof this.options.placement == 'function' ?
-        this.options.placement.call(this, $tip[0], this.$element[0]) :
-        this.options.placement
+	/**
 
-      var autoToken = /\s?auto?\s?/i
-      var autoPlace = autoToken.test(placement)
-      if (autoPlace) placement = placement.replace(autoToken, '') || 'top'
+	 *
 
-      $tip
-        .detach()
-        .css({ top: 0, left: 0, display: 'block' })
-        .addClass(placement)
-        .data('bs.' + this.type, this)
+	 * @param {Tag} The DOM node tag
 
-      this.options.container ? $tip.appendTo(this.options.container) : $tip.insertAfter(this.$element)
-      this.$element.trigger('inserted.bs.' + this.type)
+	 * @param {Object=[]} optional key-value pairs to be mapped to DOM attrs
 
-      var pos          = this.getPosition()
-      var actualWidth  = $tip[0].offsetWidth
-      var actualHeight = $tip[0].offsetHeight
+	 * @param {...mNode=[]} Zero or more Mithril child nodes. Can be an array, or splat (optional)
 
-      if (autoPlace) {
-        var orgPlacement = placement
-        var viewportDim = this.getPosition(this.$viewport)
+	 *
 
-        placement = placement == 'bottom' && pos.bottom + actualHeight > viewportDim.bottom ? 'top'    :
-                    placement == 'top'    && pos.top    - actualHeight < viewportDim.top    ? 'bottom' :
-                    placement == 'right'  && pos.right  + actualWidth  > viewportDim.width  ? 'left'   :
-                    placement == 'left'   && pos.left   - actualWidth  < viewportDim.left   ? 'right'  :
-                    placement
+	 */
 
-        $tip
-          .removeClass(orgPlacement)
-          .addClass(placement)
-      }
+	function m() {
 
-      var calculatedOffset = this.getCalculatedOffset(placement, pos, actualWidth, actualHeight)
+		var args = [].slice.call(arguments);
 
-      this.applyPlacement(calculatedOffset, placement)
+		var hasAttrs = args[1] != null && type.call(args[1]) === OBJECT && !("tag" in args[1] || "view" in args[1]) && !("subtree" in args[1]);
 
-      var complete = function () {
-        var prevHoverState = that.hoverState
-        that.$element.trigger('shown.bs.' + that.type)
-        that.hoverState = null
+		var attrs = hasAttrs ? args[1] : {};
 
-        if (prevHoverState == 'out') that.leave(that)
-      }
+		var classAttrName = "class" in attrs ? "class" : "className";
 
-      $.support.transition && this.$tip.hasClass('fade') ?
-        $tip
-          .one('bsTransitionEnd', complete)
-          .emulateTransitionEnd(Tooltip.TRANSITION_DURATION) :
-        complete()
-    }
-  }
+		var cell = {tag: "div", attrs: {}};
 
-  Tooltip.prototype.applyPlacement = function (offset, placement) {
-    var $tip   = this.tip()
-    var width  = $tip[0].offsetWidth
-    var height = $tip[0].offsetHeight
+		var match, classes = [];
 
-    // manually read margins because getBoundingClientRect includes difference
-    var marginTop = parseInt($tip.css('margin-top'), 10)
-    var marginLeft = parseInt($tip.css('margin-left'), 10)
+		if (type.call(args[0]) != STRING) throw new Error("selector in m(selector, attrs, children) should be a string")
 
-    // we must check for NaN for ie 8/9
-    if (isNaN(marginTop))  marginTop  = 0
-    if (isNaN(marginLeft)) marginLeft = 0
+		while (match = parser.exec(args[0])) {
 
-    offset.top  += marginTop
-    offset.left += marginLeft
+			if (match[1] === "" && match[2]) cell.tag = match[2];
 
-    // $.fn.offset doesn't round pixel values
-    // so we use setOffset directly with our own function B-0
-    $.offset.setOffset($tip[0], $.extend({
-      using: function (props) {
-        $tip.css({
-          top: Math.round(props.top),
-          left: Math.round(props.left)
-        })
-      }
-    }, offset), 0)
+			else if (match[1] === "#") cell.attrs.id = match[2];
 
-    $tip.addClass('in')
+			else if (match[1] === ".") classes.push(match[2]);
 
-    // check to see if placing tip in new offset caused the tip to resize itself
-    var actualWidth  = $tip[0].offsetWidth
-    var actualHeight = $tip[0].offsetHeight
+			else if (match[3][0] === "[") {
 
-    if (placement == 'top' && actualHeight != height) {
-      offset.top = offset.top + height - actualHeight
-    }
+				var pair = attrParser.exec(match[3]);
 
-    var delta = this.getViewportAdjustedDelta(placement, offset, actualWidth, actualHeight)
+				cell.attrs[pair[1]] = pair[3] || (pair[2] ? "" :true)
 
-    if (delta.left) offset.left += delta.left
-    else offset.top += delta.top
+			}
 
-    var isVertical          = /top|bottom/.test(placement)
-    var arrowDelta          = isVertical ? delta.left * 2 - width + actualWidth : delta.top * 2 - height + actualHeight
-    var arrowOffsetPosition = isVertical ? 'offsetWidth' : 'offsetHeight'
+		}
 
-    $tip.offset(offset)
-    this.replaceArrow(arrowDelta, $tip[0][arrowOffsetPosition], isVertical)
-  }
-
-  Tooltip.prototype.replaceArrow = function (delta, dimension, isVertical) {
-    this.arrow()
-      .css(isVertical ? 'left' : 'top', 50 * (1 - delta / dimension) + '%')
-      .css(isVertical ? 'top' : 'left', '')
-  }
-
-  Tooltip.prototype.setContent = function () {
-    var $tip  = this.tip()
-    var title = this.getTitle()
-
-    $tip.find('.tooltip-inner')[this.options.html ? 'html' : 'text'](title)
-    $tip.removeClass('fade in top bottom left right')
-  }
-
-  Tooltip.prototype.hide = function (callback) {
-    var that = this
-    var $tip = $(this.$tip)
-    var e    = $.Event('hide.bs.' + this.type)
-
-    function complete() {
-      if (that.hoverState != 'in') $tip.detach()
-      that.$element
-        .removeAttr('aria-describedby')
-        .trigger('hidden.bs.' + that.type)
-      callback && callback()
-    }
-
-    this.$element.trigger(e)
-
-    if (e.isDefaultPrevented()) return
-
-    $tip.removeClass('in')
-
-    $.support.transition && $tip.hasClass('fade') ?
-      $tip
-        .one('bsTransitionEnd', complete)
-        .emulateTransitionEnd(Tooltip.TRANSITION_DURATION) :
-      complete()
-
-    this.hoverState = null
-
-    return this
-  }
-
-  Tooltip.prototype.fixTitle = function () {
-    var $e = this.$element
-    if ($e.attr('title') || typeof $e.attr('data-original-title') != 'string') {
-      $e.attr('data-original-title', $e.attr('title') || '').attr('title', '')
-    }
-  }
-
-  Tooltip.prototype.hasContent = function () {
-    return this.getTitle()
-  }
-
-  Tooltip.prototype.getPosition = function ($element) {
-    $element   = $element || this.$element
-
-    var el     = $element[0]
-    var isBody = el.tagName == 'BODY'
-
-    var elRect    = el.getBoundingClientRect()
-    if (elRect.width == null) {
-      // width and height are missing in IE8, so compute them manually; see https://github.com/twbs/bootstrap/issues/14093
-      elRect = $.extend({}, elRect, { width: elRect.right - elRect.left, height: elRect.bottom - elRect.top })
-    }
-    var elOffset  = isBody ? { top: 0, left: 0 } : $element.offset()
-    var scroll    = { scroll: isBody ? document.documentElement.scrollTop || document.body.scrollTop : $element.scrollTop() }
-    var outerDims = isBody ? { width: $(window).width(), height: $(window).height() } : null
-
-    return $.extend({}, elRect, scroll, outerDims, elOffset)
-  }
-
-  Tooltip.prototype.getCalculatedOffset = function (placement, pos, actualWidth, actualHeight) {
-    return placement == 'bottom' ? { top: pos.top + pos.height,   left: pos.left + pos.width / 2 - actualWidth / 2 } :
-           placement == 'top'    ? { top: pos.top - actualHeight, left: pos.left + pos.width / 2 - actualWidth / 2 } :
-           placement == 'left'   ? { top: pos.top + pos.height / 2 - actualHeight / 2, left: pos.left - actualWidth } :
-        /* placement == 'right' */ { top: pos.top + pos.height / 2 - actualHeight / 2, left: pos.left + pos.width }
-
-  }
-
-  Tooltip.prototype.getViewportAdjustedDelta = function (placement, pos, actualWidth, actualHeight) {
-    var delta = { top: 0, left: 0 }
-    if (!this.$viewport) return delta
-
-    var viewportPadding = this.options.viewport && this.options.viewport.padding || 0
-    var viewportDimensions = this.getPosition(this.$viewport)
-
-    if (/right|left/.test(placement)) {
-      var topEdgeOffset    = pos.top - viewportPadding - viewportDimensions.scroll
-      var bottomEdgeOffset = pos.top + viewportPadding - viewportDimensions.scroll + actualHeight
-      if (topEdgeOffset < viewportDimensions.top) { // top overflow
-        delta.top = viewportDimensions.top - topEdgeOffset
-      } else if (bottomEdgeOffset > viewportDimensions.top + viewportDimensions.height) { // bottom overflow
-        delta.top = viewportDimensions.top + viewportDimensions.height - bottomEdgeOffset
-      }
-    } else {
-      var leftEdgeOffset  = pos.left - viewportPadding
-      var rightEdgeOffset = pos.left + viewportPadding + actualWidth
-      if (leftEdgeOffset < viewportDimensions.left) { // left overflow
-        delta.left = viewportDimensions.left - leftEdgeOffset
-      } else if (rightEdgeOffset > viewportDimensions.right) { // right overflow
-        delta.left = viewportDimensions.left + viewportDimensions.width - rightEdgeOffset
-      }
-    }
-
-    return delta
-  }
-
-  Tooltip.prototype.getTitle = function () {
-    var title
-    var $e = this.$element
-    var o  = this.options
-
-    title = $e.attr('data-original-title')
-      || (typeof o.title == 'function' ? o.title.call($e[0]) :  o.title)
-
-    return title
-  }
-
-  Tooltip.prototype.getUID = function (prefix) {
-    do prefix += ~~(Math.random() * 1000000)
-    while (document.getElementById(prefix))
-    return prefix
-  }
-
-  Tooltip.prototype.tip = function () {
-    if (!this.$tip) {
-      this.$tip = $(this.options.template)
-      if (this.$tip.length != 1) {
-        throw new Error(this.type + ' `template` option must consist of exactly 1 top-level element!')
-      }
-    }
-    return this.$tip
-  }
-
-  Tooltip.prototype.arrow = function () {
-    return (this.$arrow = this.$arrow || this.tip().find('.tooltip-arrow'))
-  }
-
-  Tooltip.prototype.enable = function () {
-    this.enabled = true
-  }
-
-  Tooltip.prototype.disable = function () {
-    this.enabled = false
-  }
-
-  Tooltip.prototype.toggleEnabled = function () {
-    this.enabled = !this.enabled
-  }
-
-  Tooltip.prototype.toggle = function (e) {
-    e.stopPropagation();
-    var self = this
-    if (e) {
-      self = $(e.currentTarget).data('bs.' + this.type)
-      if (!self) {
-        self = new this.constructor(e.currentTarget, this.getDelegateOptions())
-        $(e.currentTarget).data('bs.' + this.type, self)
-      }
-    }
-
-    if (e) {
-      self.inState.click = !self.inState.click
-      if (self.isInStateTrue()) self.enter(self)
-      else self.leave(self)
-    } else {
-      self.tip().hasClass('in') ? self.leave(self) : self.enter(self)
-    }
-  }
-
-  Tooltip.prototype.destroy = function () {
-    var that = this
-    clearTimeout(this.timeout)
-    this.hide(function () {
-      that.$element.off('.' + that.type).removeData('bs.' + that.type)
-      if (that.$tip) {
-        that.$tip.detach()
-      }
-      that.$tip = null
-      that.$arrow = null
-      that.$viewport = null
-    })
-  }
-
-
-  // TOOLTIP PLUGIN DEFINITION
-  // =========================
-
-  function Plugin(option) {
-    return this.each(function () {
-      var $this   = $(this)
-      var data    = $this.data('bs.tooltip')
-      var options = typeof option == 'object' && option
-
-      if (!data && /destroy|hide/.test(option)) return
-      if (!data) $this.data('bs.tooltip', (data = new Tooltip(this, options)))
-      if (typeof option == 'string') data[option]()
-    })
-  }
-
-  var old = $.fn.tooltip
-
-  $.fn.tooltip             = Plugin
-  $.fn.tooltip.Constructor = Tooltip
-
-
-  // TOOLTIP NO CONFLICT
-  // ===================
-
-  $.fn.tooltip.noConflict = function () {
-    $.fn.tooltip = old
-    return this
-  }
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: popover.js v3.3.5
- * http://getbootstrap.com/javascript/#popovers
- * ========================================================================
- * Copyright 2011-2015 Twitter, Inc.
- * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
- * ======================================================================== */
-
-
-+function ($) {
-  'use strict';
-
-  // POPOVER PUBLIC CLASS DEFINITION
-  // ===============================
-
-  var Popover = function (element, options) {
-    this.init('popover', element, options)
-  }
-
-  if (!$.fn.tooltip) throw new Error('Popover requires tooltip.js')
-
-  Popover.VERSION  = '3.3.5'
-
-  Popover.DEFAULTS = $.extend({}, $.fn.tooltip.Constructor.DEFAULTS, {
-    placement: 'right',
-    trigger: 'click',
-    content: '',
-    template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div></div>'
-  })
-
-
-  // NOTE: POPOVER EXTENDS tooltip.js
-  // ================================
-
-  Popover.prototype = $.extend({}, $.fn.tooltip.Constructor.prototype)
-
-  Popover.prototype.constructor = Popover
-
-  Popover.prototype.getDefaults = function () {
-    return Popover.DEFAULTS
-  }
-
-  Popover.prototype.setContent = function () {
-    var $tip    = this.tip()
-    var title   = this.getTitle()
-    var content = this.getContent()
-
-    $tip.find('.popover-title')[this.options.html ? 'html' : 'text'](title)
-    $tip.find('.popover-content').children().detach().end()[ // we use append for html objects to maintain js events
-      this.options.html ? (typeof content == 'string' ? 'html' : 'append') : 'text'
-    ](content)
-
-    $tip.removeClass('fade top bottom left right in')
-
-    // IE8 doesn't accept hiding via the `:empty` pseudo selector, we have to do
-    // this manually by checking the contents.
-    if (!$tip.find('.popover-title').html()) $tip.find('.popover-title').hide()
-  }
-
-  Popover.prototype.hasContent = function () {
-    return this.getTitle() || this.getContent()
-  }
-
-  Popover.prototype.getContent = function () {
-    var $e = this.$element
-    var o  = this.options
-
-    return $e.attr('data-content')
-      || (typeof o.content == 'function' ?
-            o.content.call($e[0]) :
-            o.content)
-  }
-
-  Popover.prototype.arrow = function () {
-    return (this.$arrow = this.$arrow || this.tip().find('.arrow'))
-  }
-
-
-  // POPOVER PLUGIN DEFINITION
-  // =========================
-
-  function Plugin(option) {
-    return this.each(function () {
-      var $this   = $(this)
-      var data    = $this.data('bs.popover')
-      var options = typeof option == 'object' && option
-
-      if (!data && /destroy|hide/.test(option)) return
-      if (!data) $this.data('bs.popover', (data = new Popover(this, options)))
-      if (typeof option == 'string') data[option]()
-    })
-  }
-
-  var old = $.fn.popover
-
-  $.fn.popover             = Plugin
-  $.fn.popover.Constructor = Popover
-
-
-  // POPOVER NO CONFLICT
-  // ===================
-
-  $.fn.popover.noConflict = function () {
-    $.fn.popover = old
-    return this
-  }
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: transition.js v3.3.5
- * http://getbootstrap.com/javascript/#transitions
- * ========================================================================
- * Copyright 2011-2015 Twitter, Inc.
- * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
- * ======================================================================== */
-
-
-+function ($) {
-  'use strict';
-
-  // CSS TRANSITION SUPPORT (Shoutout: http://www.modernizr.com/)
-  // ============================================================
-
-  function transitionEnd() {
-    var el = document.createElement('bootstrap')
-
-    var transEndEventNames = {
-      WebkitTransition : 'webkitTransitionEnd',
-      MozTransition    : 'transitionend',
-      OTransition      : 'oTransitionEnd otransitionend',
-      transition       : 'transitionend'
-    }
-
-    for (var name in transEndEventNames) {
-      if (el.style[name] !== undefined) {
-        return { end: transEndEventNames[name] }
-      }
-    }
-
-    return false // explicit for ie8 (  ._.)
-  }
-
-  // http://blog.alexmaccaw.com/css-transitions
-  $.fn.emulateTransitionEnd = function (duration) {
-    var called = false
-    var $el = this
-    $(this).one('bsTransitionEnd', function () { called = true })
-    var callback = function () { if (!called) $($el).trigger($.support.transition.end) }
-    setTimeout(callback, duration)
-    return this
-  }
-
-  $(function () {
-    $.support.transition = transitionEnd()
-
-    if (!$.support.transition) return
-
-    $.event.special.bsTransitionEnd = {
-      bindType: $.support.transition.end,
-      delegateType: $.support.transition.end,
-      handle: function (e) {
-        if ($(e.target).is(this)) return e.handleObj.handler.apply(this, arguments)
-      }
-    }
-  })
-
-}(jQuery);
-
-var DateFormat = {};
-
-(function($) {
-  var daysInWeek          = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  var shortDaysInWeek     = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  var shortMonthsInYear   = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  var longMonthsInYear    = ['January', 'February', 'March', 'April', 'May', 'June',
-                              'July', 'August', 'September', 'October', 'November', 'December'];
-  var shortMonthsToNumber = { 'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
-                              'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12' };
-
-  var YYYYMMDD_MATCHER = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.?\d{0,3}[Z\-+]?(\d{2}:?\d{2})?/;
-
-  $.format = (function() {
-    function numberToLongDay(value) {
-      // 0 to Sunday
-      // 1 to Monday
-      return daysInWeek[parseInt(value, 10)] || value;
-    }
-
-    function numberToShortDay(value) {
-      // 0 to Sun
-      // 1 to Mon
-      return shortDaysInWeek[parseInt(value, 10)] || value;
-    }
-
-    function numberToShortMonth(value) {
-      // 1 to Jan
-      // 2 to Feb
-      var monthArrayIndex = parseInt(value, 10) - 1;
-      return shortMonthsInYear[monthArrayIndex] || value;
-    }
-
-    function numberToLongMonth(value) {
-      // 1 to January
-      // 2 to February
-      var monthArrayIndex = parseInt(value, 10) - 1;
-      return longMonthsInYear[monthArrayIndex] || value;
-    }
-
-    function shortMonthToNumber(value) {
-      // Jan to 01
-      // Feb to 02
-      return shortMonthsToNumber[value] || value;
-    }
-
-    function parseTime(value) {
-      // 10:54:50.546
-      // => hour: 10, minute: 54, second: 50, millis: 546
-      // 10:54:50
-      // => hour: 10, minute: 54, second: 50, millis: ''
-      var time = value,
-          hour,
-          minute,
-          second,
-          millis = '',
-          delimited,
-          timeArray;
-
-      if(time.indexOf('.') !== -1) {
-        delimited = time.split('.');
-        // split time and milliseconds
-        time   = delimited[0];
-        millis = delimited[delimited.length - 1];
-      }
-
-      timeArray = time.split(':');
-
-      if(timeArray.length === 3) {
-        hour   = timeArray[0];
-        minute = timeArray[1];
-        // '20 GMT-0200 (BRST)'.replace(/\s.+/, '').replace(/[a-z]/gi, '');
-        // => 20
-        // '20Z'.replace(/\s.+/, '').replace(/[a-z]/gi, '');
-        // => 20
-        second = timeArray[2].replace(/\s.+/, '').replace(/[a-z]/gi, '');
-        // '01:10:20 GMT-0200 (BRST)'.replace(/\s.+/, '').replace(/[a-z]/gi, '');
-        // => 01:10:20
-        // '01:10:20Z'.replace(/\s.+/, '').replace(/[a-z]/gi, '');
-        // => 01:10:20
-        time = time.replace(/\s.+/, '').replace(/[a-z]/gi, '');
-        return {
-          time:    time,
-          hour:    hour,
-          minute:  minute,
-          second:  second,
-          millis:  millis
-        };
-      }
-
-      return { time : '', hour : '', minute : '', second : '', millis : '' };
-    }
-
-
-    function padding(value, length) {
-      var paddingCount = length - String(value).length;
-      for(var i = 0; i < paddingCount; i++) {
-        value = '0' + value;
-      }
-      return value;
-    }
-
-    return {
-
-      parseDate: function(value) {
-        var values,
-            subValues;
-
-        var parsedDate = {
-          date:       null,
-          year:       null,
-          month:      null,
-          dayOfMonth: null,
-          dayOfWeek:  null,
-          time:       null
-        };
-
-        if(typeof value == 'number') {
-          return this.parseDate(new Date(value));
-        } else if(typeof value.getFullYear == 'function') {
-          parsedDate.year       = String(value.getFullYear());
-          // d = new Date(1900, 1, 1) // 1 for Feb instead of Jan.
-          // => Thu Feb 01 1900 00:00:00
-          parsedDate.month      = String(value.getMonth() + 1);
-          parsedDate.dayOfMonth = String(value.getDate());
-          parsedDate.time       = parseTime(value.toTimeString() + "." + value.getMilliseconds());
-        } else if(value.search(YYYYMMDD_MATCHER) != -1) {
-          /* 2009-04-19T16:11:05+02:00 || 2009-04-19T16:11:05Z */
-          values = value.split(/[T\+-]/);
-          parsedDate.year       = values[0];
-          parsedDate.month      = values[1];
-          parsedDate.dayOfMonth = values[2];
-          parsedDate.time       = parseTime(values[3].split('.')[0]);
-        } else {
-          values = value.split(' ');
-          if(values.length === 6 && isNaN(values[5])) {
-            // values[5] == year
-            /*
-             * This change is necessary to make `Mon Apr 28 2014 05:30:00 GMT-0300` work
-             * like `case 7`
-             * otherwise it will be considered like `Wed Jan 13 10:43:41 CET 2010
-             * Fixes: https://github.com/phstc/jquery-dateFormat/issues/64
-             */
-            values[values.length] = '()';
-          }
-          switch (values.length) {
-            case 6:
-              /* Wed Jan 13 10:43:41 CET 2010 */
-              parsedDate.year       = values[5];
-              parsedDate.month      = shortMonthToNumber(values[1]);
-              parsedDate.dayOfMonth = values[2];
-              parsedDate.time       = parseTime(values[3]);
-              break;
-            case 2:
-              /* 2009-12-18 10:54:50.546 */
-              subValues = values[0].split('-');
-              parsedDate.year       = subValues[0];
-              parsedDate.month      = subValues[1];
-              parsedDate.dayOfMonth = subValues[2];
-              parsedDate.time       = parseTime(values[1]);
-              break;
-            case 7:
-              /* Tue Mar 01 2011 12:01:42 GMT-0800 (PST) */
-            case 9:
-              /* added by Larry, for Fri Apr 08 2011 00:00:00 GMT+0800 (China Standard Time) */
-            case 10:
-              /* added by Larry, for Fri Apr 08 2011 00:00:00 GMT+0200 (W. Europe Daylight Time) */
-              parsedDate.year       = values[3];
-              parsedDate.month      = shortMonthToNumber(values[1]);
-              parsedDate.dayOfMonth = values[2];
-              parsedDate.time       = parseTime(values[4]);
-              break;
-            case 1:
-              /* added by Jonny, for 2012-02-07CET00:00:00 (Doctrine Entity -> Json Serializer) */
-              subValues = values[0].split('');
-              parsedDate.year       = subValues[0] + subValues[1] + subValues[2] + subValues[3];
-              parsedDate.month      = subValues[5] + subValues[6];
-              parsedDate.dayOfMonth = subValues[8] + subValues[9];
-              parsedDate.time       = parseTime(subValues[13] + subValues[14] + subValues[15] + subValues[16] + subValues[17] + subValues[18] + subValues[19] + subValues[20]);
-              break;
-            default:
-              return null;
-          }
-        }
-
-        if(parsedDate.time) {
-          parsedDate.date = new Date(parsedDate.year, parsedDate.month - 1, parsedDate.dayOfMonth, parsedDate.time.hour, parsedDate.time.minute, parsedDate.time.second, parsedDate.time.millis);
-        } else {
-          parsedDate.date = new Date(parsedDate.year, parsedDate.month - 1, parsedDate.dayOfMonth);
-        }
-
-        parsedDate.dayOfWeek = String(parsedDate.date.getDay());
-
-        return parsedDate;
-      },
-
-      date : function(value, format) {
-        try {
-          var parsedDate = this.parseDate(value);
-
-          if(parsedDate === null) {
-            return value;
-          }
-
-          var year       = parsedDate.year,
-              month      = parsedDate.month,
-              dayOfMonth = parsedDate.dayOfMonth,
-              dayOfWeek  = parsedDate.dayOfWeek,
-              time       = parsedDate.time;
-          var hour;
-
-          var pattern      = '',
-              retValue     = '',
-              unparsedRest = '',
-              inQuote      = false;
-
-          /* Issue 1 - variable scope issue in format.date (Thanks jakemonO) */
-          for(var i = 0; i < format.length; i++) {
-            var currentPattern = format.charAt(i);
-            // Look-Ahead Right (LALR)
-            var nextRight      = format.charAt(i + 1);
-
-            if (inQuote) {
-              if (currentPattern == "'") {
-                retValue += (pattern === '') ? "'" : pattern;
-                pattern = '';
-                inQuote = false;
-              } else {
-                pattern += currentPattern;
-              }
-              continue;
-            }
-            pattern += currentPattern;
-            unparsedRest = '';
-            switch (pattern) {
-              case 'ddd':
-                retValue += numberToLongDay(dayOfWeek);
-                pattern = '';
-                break;
-              case 'dd':
-                if(nextRight === 'd') {
-                  break;
-                }
-                retValue += padding(dayOfMonth, 2);
-                pattern = '';
-                break;
-              case 'd':
-                if(nextRight === 'd') {
-                  break;
-                }
-                retValue += parseInt(dayOfMonth, 10);
-                pattern = '';
-                break;
-              case 'D':
-                if(dayOfMonth == 1 || dayOfMonth == 21 || dayOfMonth == 31) {
-                  dayOfMonth = parseInt(dayOfMonth, 10) + 'st';
-                } else if(dayOfMonth == 2 || dayOfMonth == 22) {
-                  dayOfMonth = parseInt(dayOfMonth, 10) + 'nd';
-                } else if(dayOfMonth == 3 || dayOfMonth == 23) {
-                  dayOfMonth = parseInt(dayOfMonth, 10) + 'rd';
-                } else {
-                  dayOfMonth = parseInt(dayOfMonth, 10) + 'th';
-                }
-                retValue += dayOfMonth;
-                pattern = '';
-                break;
-              case 'MMMM':
-                retValue += numberToLongMonth(month);
-                pattern = '';
-                break;
-              case 'MMM':
-                if(nextRight === 'M') {
-                  break;
-                }
-                retValue += numberToShortMonth(month);
-                pattern = '';
-                break;
-              case 'MM':
-                if(nextRight === 'M') {
-                  break;
-                }
-                retValue += padding(month, 2);
-                pattern = '';
-                break;
-              case 'M':
-                if(nextRight === 'M') {
-                  break;
-                }
-                retValue += parseInt(month, 10);
-                pattern = '';
-                break;
-              case 'y':
-              case 'yyy':
-                if(nextRight === 'y') {
-                  break;
-                }
-                retValue += pattern;
-                pattern = '';
-                break;
-              case 'yy':
-                if(nextRight === 'y') {
-                  break;
-                }
-                retValue += String(year).slice(-2);
-                pattern = '';
-                break;
-              case 'yyyy':
-                retValue += year;
-                pattern = '';
-                break;
-              case 'HH':
-                retValue += padding(time.hour, 2);
-                pattern = '';
-                break;
-              case 'H':
-                if(nextRight === 'H') {
-                  break;
-                }
-                retValue += parseInt(time.hour, 10);
-                pattern = '';
-                break;
-              case 'hh':
-                /* time.hour is '00' as string == is used instead of === */
-                hour = (parseInt(time.hour, 10) === 0 ? 12 : time.hour < 13 ? time.hour
-                    : time.hour - 12);
-                retValue += padding(hour, 2);
-                pattern = '';
-                break;
-              case 'h':
-                if(nextRight === 'h') {
-                  break;
-                }
-                hour = (parseInt(time.hour, 10) === 0 ? 12 : time.hour < 13 ? time.hour
-                    : time.hour - 12);
-                retValue += parseInt(hour, 10);
-                // Fixing issue https://github.com/phstc/jquery-dateFormat/issues/21
-                // retValue = parseInt(retValue, 10);
-                pattern = '';
-                break;
-              case 'mm':
-                retValue += padding(time.minute, 2);
-                pattern = '';
-                break;
-              case 'm':
-                if(nextRight === 'm') {
-                  break;
-                }
-                retValue += time.minute;
-                pattern = '';
-                break;
-              case 'ss':
-                /* ensure only seconds are added to the return string */
-                retValue += padding(time.second.substring(0, 2), 2);
-                pattern = '';
-                break;
-              case 's':
-                if(nextRight === 's') {
-                  break;
-                }
-                retValue += time.second;
-                pattern = '';
-                break;
-              case 'S':
-              case 'SS':
-                if(nextRight === 'S') {
-                  break;
-                }
-                retValue += pattern;
-                pattern = '';
-                break;
-              case 'SSS':
-                var sss = '000' + time.millis.substring(0, 3);
-                retValue +=  sss.substring(sss.length - 3);
-                pattern = '';
-                break;
-              case 'a':
-                retValue += time.hour >= 12 ? 'PM' : 'AM';
-                pattern = '';
-                break;
-              case 'p':
-                retValue += time.hour >= 12 ? 'p.m.' : 'a.m.';
-                pattern = '';
-                break;
-              case 'E':
-                retValue += numberToShortDay(dayOfWeek);
-                pattern = '';
-                break;
-              case "'":
-                pattern = '';
-                inQuote = true;
-                break;
-              default:
-                retValue += currentPattern;
-                pattern = '';
-                break;
-            }
-          }
-          retValue += unparsedRest;
-          return retValue;
-        } catch (e) {
-          if(console && console.log) {
-            console.log(e);
-          }
-          return value;
-        }
-      },
-      /*
-       * JavaScript Pretty Date
-       * Copyright (c) 2011 John Resig (ejohn.org)
-       * Licensed under the MIT and GPL licenses.
-       *
-       * Takes an ISO time and returns a string representing how long ago the date
-       * represents
-       *
-       * ('2008-01-28T20:24:17Z') // => '2 hours ago'
-       * ('2008-01-27T22:24:17Z') // => 'Yesterday'
-       * ('2008-01-26T22:24:17Z') // => '2 days ago'
-       * ('2008-01-14T22:24:17Z') // => '2 weeks ago'
-       * ('2007-12-15T22:24:17Z') // => 'more than 5 weeks ago'
-       *
-       */
-      prettyDate : function(time) {
-        var date;
-        var diff;
-        var day_diff;
-
-        if(typeof time === 'string' || typeof time === 'number') {
-          date = new Date(time);
-        }
-
-        if(typeof time === 'object') {
-          date = new Date(time.toString());
-        }
-
-        diff = (((new Date()).getTime() - date.getTime()) / 1000);
-
-        day_diff = Math.floor(diff / 86400);
-
-        if(isNaN(day_diff) || day_diff < 0) {
-          return;
-        }
-
-        if(diff < 60) {
-          return 'just now';
-        } else if(diff < 120) {
-          return '1 minute ago';
-        } else if(diff < 3600) {
-          return Math.floor(diff / 60) + ' minutes ago';
-        } else if(diff < 7200) {
-          return '1 hour ago';
-        } else if(diff < 86400) {
-          return Math.floor(diff / 3600) + ' hours ago';
-        } else if(day_diff === 1) {
-          return 'Yesterday';
-        } else if(day_diff < 7) {
-          return day_diff + ' days ago';
-        } else if(day_diff < 31) {
-          return Math.ceil(day_diff / 7) + ' weeks ago';
-        } else if(day_diff >= 31) {
-          return 'more than 5 weeks ago';
-        }
-      },
-      toBrowserTimeZone : function(value, format) {
-        return this.date(new Date(value), format || 'MM/dd/yyyy HH:mm:ss');
-      }
-    };
-  }());
-}(DateFormat));
-;// require dateFormat.js
-// please check `dist/jquery.dateFormat.js` for a complete version
-(function($) {
-  $.format = DateFormat.format;
-}(jQuery));
-
-/**
- * jquery.calendario.js v3.2.0
- * http://www.codrops.com
- *
- * Licensed under the MIT license.
- * http://www.opensource.org/licenses/mit-license.php
- *
- * Copyright 2014, Codrops
- * http://www.codrops.com
- *
- * || Notable Changes ||
- * Calendario gets more flexible : Boží Ďábel (https://github.com/deviprsd21) (https://github.com/codrops/Calendario/pull/11)
- * Multiple Events : Mattias Lyckne (https://github.com/olyckne) (https://github.com/codrops/Calendario/pull/22)
- * Flexibility In-built : Boží Ďábel (https://github.com/deviprsd21) (https://github.com/codrops/Calendario/pull/23)
- * Now with Time : Boží Ďábel (https://github.com/deviprsd21) (https://github.com/codrops/Calendario/pull/25)
- */
-;(function($, window, undefined){
-  'use strict';
-
-  $.Calendario = function(options, element){
-    this.$el = $(element);
-    this._init(options);
-  };
-
-  // the options
-  $.Calendario.defaults = {
-    /*
-      you can also pass:
-      month : initialize calendar with this month (1-12). Default is today.
-      year : initialize calendar with this year. Default is today.
-      caldata : initial data/content for the calendar.
-      caldata format:
-      {
-        'MM-DD-YYYY' : 'HTML Content',
-        'MM-DD-YYYY' : 'HTML Content',
-          ...
-      }
-    */
-    weeks : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-    weekabbrs : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    months : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-    monthabbrs : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-    displayWeekAbbr : false, // choose between values in options.weeks or options.weekabbrs
-    displayMonthAbbr : false, // choose between values in options.months or options.monthabbrs
-    startIn : 0, // left most day in the calendar (0 - Sunday, 1 - Monday, ... , 6 - Saturday)
-    events: 'click',
-    fillEmpty: false,
-    feedParser: './feed/',
-    zone: '00:00', // Ex: IST zone time is '+05:30' by default it is GMT, Sign is important.
-    checkUpdate: false //Check if any new version of Calendario is released (Details will be in the browser console)
-  };
-
-  $.Calendario.prototype = {
-    _init : function(options){
-      // options
-      this.VERSION = '3.2.0';
-      this.FIXED_DATE = new Date("10-18-2015");
-      this.UNIQUE = '%{unique}%'; //UNIQUE helps us differentiate your js from others and help us keep a track of run time.
-      this.options = $.extend(true, {}, $.Calendario.defaults, options);
-      this.today = new Date();
-      this.month = (isNaN(this.options.month) || this.options.month === null) ? this.today.getMonth() : this.options.month - 1;
-      this.year = (isNaN(this.options.year) || this.options.year === null) ? this.today.getFullYear() : this.options.year;
-      this.caldata = this.options.caldata;
-      // if hover is passed as an event then throw error if jQuery is 1.9 or above 1.9, because, hover psuedo name isn't supported
-      if(parseFloat($().jquery) >= 1.9 && this.options.events.indexOf('hover') != -1)
-        this.logError('\'hover\' psuedo-name is not supported' + ' in jQuery 1.9+. Use \'mouseenter\' \'mouseleave\' events instead.');
-
-      this.options.events = this.options.events.split(',');
-      this.options.zone = this.options.zone.charAt(0) != '+' && this.options.zone.charAt(0) != '-' ? '+' + this.options.zone : this.options.zone;
-      this._generateTemplate(true);
-      this._initEvents();
-    },
-
-    _processCaldataObj: function(value){
-      val = {date: value.date, content: value.content, startTime: '00:00', endTime: '23:59', allDay: true};
-      return val;
-    },
-
-    _processCaldata: function(caldata){
-      var self = this;
-      caldata = caldata || [];
-      $.each(caldata, function(index, value){
-        if(/^\d{2}-\d{2}-\d{4}/.test(value.date) || /^\d{2}-\d{2}-YYYY/.test(value.date) || /^\d{2}-DD-YYYY/.test(value.date) || /^MM-\d{2}-YYYY/.test(value.date) ||
-        /^\d{2}-DD-YYYY/.test(value.date) || /^MM-\d{2}-\d{4}/.test(value.date) || /^\d{2}-DD-\d{4}/.test(value.date) ||value.date == 'TODAY') {} else
-          self.logError(value.date + ' is an Invalid Date. Date should not contain spaces, should be separated by \'-\' and should be in the ' +
-          'format \'MM-DD-YYYY\'. That ain\'t that difficult!');
-        caldata[index] = self._processCaldataObj(value);
-      });
-      return caldata;
-    },
-
-    _propDate: function($cell, event){
-      var idx = $cell.index(),
-          data = {allDay : [], content: [], endTime: [], startTime: []},
-          dateProp = {
-            day : $cell.children('span.fc-date').text(),
-            month : this.month + 1,
-            monthname : this.options.displayMonthAbbr ? this.options.monthabbrs[this.month] : this.options.months[this.month],
-            year : this.year,
-            weekday : idx + this.options.startIn,
-            weekdayname : this.options.weeks[(idx==6?0:idx + this.options.startIn)]
-          };
-
-      $cell.children( 'div.fc-calendar-events').children('div.fc-calendar-event').each(function(i, e){
-        var $html = $('<div>' + $(e).html() + '</div>');
-        data.startTime[i] = new Date($html.find('time.fc-starttime').attr('datetime'));
-        data.endTime[i] = new Date($html.find('time.fc-endtime').attr('datetime'));
-        data.allDay[i] = $html.find('time.fc-allday').attr('datetime') === 'true' ? true : false;
-        $html.find('time').remove();
-        data.content[i] = $html.html();
-      });
-
-      if(dateProp.day) this.options[event]($cell, data, dateProp);
-    },
-
-    _initEvents : function() {
-      var self = this, event = [], calendarioEventNameFormat = [];
-      for(var i = 0; i < self.options.events.length; i++) {
-        event[i] = self.options.events[i].toLowerCase().trim();
-        calendarioEventNameFormat[i] = 'onDay' + event[i].charAt(0).toUpperCase() + event[i].slice(1);
-
-        if(this.options[calendarioEventNameFormat[i]] === undefined)
-          this.options[calendarioEventNameFormat[i]] = function($el, $content, dateProperties) {return false;};
-
-        this.$el.on(event[i] + '.calendario', 'div.fc-row > div', function(e) {
-          if(e.type == 'mouseenter' || e.type == 'mouseleave') e.type = $.inArray(e.type, event) == -1 ? 'hover' : e.type;
-          self._propDate($(this), calendarioEventNameFormat[$.inArray(e.type, event)]);
-        });
-      }
-      this.$el.on('shown.calendar.calendario', function(e, instance){
-        // If check update set to true, then contact calendario's update servers for details. We didn't want to slow down your code. So we
-        // check after the calendar is rendered.
-        if(instance && instance.options.checkUpdate) self._checkUpdate();
-      });
-      // newday trigger. This trigger is exactly triggered at 00:00 hours the next day with an uncertainty of 6ms.
-      this.$el.delay(new Date(this.today.getFullYear(), this.today.getMonth(), this.today.getDate() + 1, 0, 0, 0) - new Date().getTime())
-      .queue(function(){
-        self.today = new Date();
-        if(self.today.getMonth() == self.month || self.today.getMonth() + 1 == self.month) self._generateTemplate(true);
-        self.$el.trigger($.Event('newday.calendar.calendario'));
-      });
-    },
-
-    _checkUpdate : function() {
-      var self = this;
-      $.getScript("https://raw.githubusercontent.com/codrops/Calendario/master/js/update.js")
-      .done(function(script, textStatus){
-        if(calendario.current != self.version() && parseFloat(calendario.current) >= parseFloat(self.version()))
-          console.info(calendario.msg);
-      })
-      .fail(function(jqxhr, settings, exception){
-        console.error(exception);
-      });
-    },
-
-    // Calendar logic based on http://jszen.blogspot.pt/2007/03/how-to-build-simple-calendar-with.html
-    _generateTemplate : function(firstRun, callback) {
-      var head = this._getHead(),
-          body = this._getBody(),
-          rowClass;
-
-      switch(this.rowTotal) {
-        case 4 : rowClass = 'fc-four-rows'; break;
-        case 5 : rowClass = 'fc-five-rows'; break;
-        case 6 : rowClass = 'fc-six-rows'; break;
-      }
-
-      this.$cal = $('<div class="fc-calendar ' + rowClass + '">').append(head, body);
-      this.$el.find('div.fc-calendar').remove().end().append(this.$cal);
-      this.$el.find('.fc-emptydate').parent().css({'background':'transparent', 'cursor':'default'});
-
-      if(!firstRun) this.$el.trigger($.Event('shown.calendario'));
-      if(callback) callback.call();
-    },
-
-    _getHead : function() {
-      var html = '<div class="fc-head">';
-      for(var i = 0; i <= 6; i++){
-        var pos = i + this.options.startIn,
-            j = pos > 6 ? pos - 6 - 1 : pos;
-            html += '<div>' + (this.options.displayWeekAbbr ? this.options.weekabbrs[j] : this.options.weeks[j]) + '</div>';
-      }
-      return html + '</div>';
-    },
-
-    _parseDataToDay : function (data, day, other) {
-      var content = '';
-      if(!other){
-        if(Array.isArray(data)) content = this._convertDayArray(data, day);
-        else content = this._wrapDay(data, day, true);
-      }else{
-        if (!Array.isArray(data)) data = [data];
-        for(var i = 0; i < data.length; i++){
-          if(this.month != 1 && (day >= data[i].startDate) && (day <= data[i].endDate)) content += this._wrapDay(data[i], day, true);
-          else if(this.month == 1 && (day >= data[i].startDate)){
-            if(data[i].endDate && (day <= data[i].endDate)) content += this._wrapDay(data[i], day, true);
-            else if(!data[i].endDate) content += this._wrapDay(data[i], day, true);
-          }
-        }
-      }
-      return content;
-    },
-
-    _toDateTime : function(time, day, start) {
-      var zoneH = parseInt(this.options.zone.split(':')[0]),
-          zoneM = parseInt(this.options.zone.charAt(0) + this.options.zone.split(':')[1]),
-          hour = parseInt(time.split(':')[0]) - zoneH,
-          minutes = parseInt(time.split(':')[1]) - zoneM,
-          d = new Date(Date.UTC(this.year, this.month, day, hour, minutes, 0, 0));
-      if(start) {
-        var hStart = parseInt(start.split(':')[0]) - zoneH,
-            mStart = parseInt(start.split(':')[1]) - zoneM;
-        if(d.getTime() - new Date(Date.UTC(this.year, this.month, day, hStart, mStart, 0, 0)).getTime() < 0)
-            d =  new Date(Date.UTC(this.year, this.month, day + 1, hour, minutes, 0, 0));
-      }
-      return d.toISOString();
-    },
-
-    _timeHtml : function(day, date){
-      var content = day.content;
-      content += '<time class="fc-allday" datetime="' + day.allDay + '"></time>';
-      content += '<time class="fc-starttime" datetime="' + this._toDateTime(day.startTime, date) + '">' + day.startTime + '</time>';
-      content += '<time class="fc-endtime" datetime="' + this._toDateTime(day.endTime, date, day.startTime) + '">' + day.endTime + '</time>';
-      return content;
-    },
-
-    _wrapDay: function (day, date, wrap) {
-      if(date){
-        if(wrap) return '<div class="fc-calendar-event">' + this._timeHtml(day, date) + '</div>';
-        else return this._timeHtml(day, date);
-      } else return '<div class="fc-calendar-event">' + day + '</div>';
-    },
-
-    _convertDayArray: function (day, date) {
-      var wrap_days = []
-      for(var i = 0; i < day.length; i++){
-        wrap_days[i] = this._wrapDay(day[i], date, false);
-      }
-      return this._wrapDay(wrap_days.join('</div><div class="fc-calendar-event">'));
-    },
-
-    _getBody : function() {
-      var d = new Date(this.year, this.month + 1, 0),
-          monthLength = d.getDate(), // number of days in the month
-          firstDay = new Date(this.year, d.getMonth(), 1),
-          pMonthLength = new Date(this.year, this.month, 0).getDate();
-
-      // day of the week
-      this.startingDay = firstDay.getDay();
-
-      var html = '<div class="fc-body"><div class="fc-row">',
-          day = 1; // fill in the days
-
-      for (var i = 0; i < 7; i++){ // this loop is for weeks (rows)
-        for (var j = 0; j <= 6; j++) { // this loop is for weekdays (cells)
-          var pos = this.startingDay - this.options.startIn,
-              p = pos < 0 ? 6 + pos + 1 : pos,
-              inner = '',
-              today = this.month === this.today.getMonth() && this.year === this.today.getFullYear() && day === this.today.getDate(),
-              past = this.year < this.today.getFullYear() || this.month < this.today.getMonth() && this.year === this.today.getFullYear() ||
-                     this.month === this.today.getMonth() && this.year === this.today.getFullYear() && day < this.today.getDate(),
-              content = '';
-
-          if(this.options.fillEmpty && (j < p || i > 0)){
-            if(day > monthLength) {
-              inner = '<span class="fc-date fc-emptydate">' + (day - monthLength) + '</span><span class="fc-weekday">';
-              ++day;
-            } else if (day == 1) {
-              inner = '<span class="fc-date fc-emptydate">' + (pMonthLength - p + 1) + '</span><span class="fc-weekday">';
-              ++pMonthLength;
-            }
-            inner += this.options.weekabbrs[j + this.options.startIn > 6 ? j + this.options.startIn - 6 - 1 : j + this.options.startIn] + '</span>';
-          }
-          var dateString = null;
-          if (day <= monthLength && (i > 0 || j >= p)){
-            inner = '<span class="fc-date">' + day + '</span><span class="fc-weekday">' + this.options.weekabbrs[j +
-                    this.options.startIn > 6 ? j + this.options.startIn - 6 - 1 : j + this.options.startIn ] + '</span>';
-
-            var strdate = (this.month + 1 < 10 ? '0' + (this.month + 1) : this.month + 1) + '-' + (day < 10 ? '0' + day : day) + '-' + this.year,
-                dayData = this.caldata[strdate],
-                strdateyear = (this.month + 1 < 10 ? '0' + (this.month + 1) : this.month + 1) + '-' + (day < 10 ? '0' + day : day) + '-YYYY',
-                dayDataYear = this.caldata[strdateyear],
-                strdatemonth = 'MM-' + (day < 10 ? '0' + day : day) + '-' + this.year,
-                dayDataMonth = this.caldata[strdatemonth],
-                strdatemonthyear = 'MM' + '-' + (day < 10 ? '0' + day : day) + '-YYYY',
-                dayDataMonthYear = this.caldata[strdatemonthyear],
-                strdatemonthlyyear = (this.month + 1 < 10 ? '0' + (this.month + 1) : this.month + 1) + '-DD-' + this.year,
-                dayDataMonthlyYear = this.caldata[strdatemonthlyyear],
-                strdatemonthly = (this.month + 1 < 10 ? '0' + (this.month + 1) : this.month + 1) + '-DD-YYYY',
-                dayDataMonthly = this.caldata[strdatemonthly];
-
-            if(today && this.caldata.TODAY) content += this._parseDataToDay(this.caldata.TODAY, day);
-            if(dayData) content += this._parseDataToDay(dayData, day);
-            if(dayDataMonth) content += this._parseDataToDay(dayDataMonth, day);
-            if(dayDataMonthlyYear) content += this._parseDataToDay(dayDataMonthlyYear, day, true);
-            if(dayDataMonthly) content += this._parseDataToDay(dayDataMonthly, day, true);
-            if(dayDataMonthYear) content += this._parseDataToDay( dayDataMonthYear, day );
-            if(dayDataYear) content += this._parseDataToDay( dayDataYear, day );
-            if(content !== '') inner += '<div class="fc-calendar-events">' + content + '</div>';
-            dateString = (this.month + 1) + '-' + day + '-' + this.year;
-            ++day;
-          } else {
-            today = false;
-          }
-
-          var cellClasses = today ? 'fc-today ' : '';
-          if (dateString) {
-            cellClasses += dateString + ' ';
-            var inputDate = new Date(dateString);
-            var diff = inputDate.getTime() - this.FIXED_DATE.getTime();
-            if (diff >= 0) {
-                var dayDiff = Math.floor(diff / (1000 * 3600 * 24));
-                if (dayDiff % 28 < 14)
-                    cellClasses += 'alternate-color ';
-            }
-          }
-          if(past) cellClasses += 'fc-past ';
-          else cellClasses += 'fc-future ';
-
-          if(content !== '') cellClasses += 'fc-content';
-
-          html += (cellClasses !== '' ? '<div class="' + cellClasses.trim() + '">' : '<div>') + inner + '</div>';
-        }
-
-        if(day > monthLength){ // stop making rows if we've run out of days
-          this.rowTotal = i + 1;
-          break;
-        } else {
-          html += '</div><div class="fc-row">';
-        }
-      }
-      return html + '</div></div>';
-    },
-
-    _move : function(period, dir, callback){
-      if(dir === 'previous'){
-        if(period === 'month'){
-          this.year = this.month > 0 ? this.year : --this.year;
-          this.month = this.month > 0 ? --this.month : 11;
-        } else if(period === 'year') this.year = --this.year;
-      }
-      else if(dir === 'next'){
-        if(period === 'month'){
-          this.year = this.month < 11 ? this.year : ++this.year;
-          this.month = this.month < 11 ? ++this.month : 0;
-        } else if(period === 'year') this.year = ++this.year;
-      }
-      this._generateTemplate(false, callback);
-    },
-
-    /*************************
-    ***** PUBLIC METHODS *****
-    **************************/
-    option : function(option, value) {
-      if(value) this.options[option] = value;
-      else return this.options[option];
-    },
-    getYear : function(){
-      return this.year;
-    },
-    getMonth : function(){
-      return this.month + 1;
-    },
-    getMonthName : function(){
-      return this.options.displayMonthAbbr ? this.options.monthabbrs[this.month] : this.options.months[this.month];
-    },
-    // gets the cell's content div associated to a day of the current displayed month
-    // day : 1 - [28||29||30||31]
-    getCell : function(day){
-      var row = Math.floor((day + this.startingDay - this.options.startIn - 1) / 7),
-          pos = day + this.startingDay - this.options.startIn - (row * 7) - 1;
-      return this.$cal.find('div.fc-body').children('div.fc-row').eq(row).children('div').eq(pos);
-    },
-    setData : function(caldata, clear) {
-      caldata = this._processCaldata(caldata);
-      if(clear) this.caldata = caldata;
-      else $.extend(this.caldata, caldata);
-      this._generateTemplate(false);
-    },
-    // goes to today's month/year
-    gotoNow : function(callback) {
-      this.month = this.today.getMonth();
-      this.year = this.today.getFullYear();
-      this._generateTemplate(false, callback);
-    },
-    // goes to month/year
-    gotoMonth : function(month, year, callback){
-      this.month = month - 1;
-      this.year = year;
-      this._generateTemplate(false, callback);
-    },
-    gotoPreviousMonth : function(callback){
-      this._move('month', 'previous', callback);
-    },
-    gotoPreviousYear : function(callback){
-      this._move('year', 'previous', callback);
-    },
-    gotoNextMonth : function(callback){
-      this._move('month', 'next', callback);
-    },
-    gotoNextYear : function(callback){
-      this._move('year', 'next', callback);
-    },
-    feed : function(callback){
-      var self = this;
-      $.post(self.options.feedParser, {dates: this.caldata})
-      .always(function(data){
-        if(callback) callback.call(this, JSON.parse(data).hevent);
-      });
-    },
-    version : function() {
-      return this.VERSION;
-    }
-  };
-
-  var logError = function(message){
-    throw new Error(message);
-  };
-
-  $.fn.calendario = function(options) {
-    var instance = $.data(this, 'calendario');
-    if(typeof options === 'string'){
-      var args = Array.prototype.slice.call(arguments, 1);
-      this.each(function(){
-        if(!instance){
-          logError("Cannot call methods on calendario prior to initialization; Attempted to call method '" + options + "'");
-          return;
-        }
-        if (!$.isFunction(instance[options]) || options.charAt(0) === "_"){
-          logError("No such method '" + options + "' for calendario instance.");
-        }
-        instance[options].apply(instance, args);
-      });
-    } else {
-      this.each(function(){
-        if (instance) instance._init();
-        else instance = $.data(this, 'calendario', new $.Calendario(options, this));
-      });
-    }
-    instance.$el.trigger($.Event('shown.calendar.calendario'), [instance]);
-    return instance;
-  };
-})(jQuery, window);
+
+
+		var children = hasAttrs ? args.slice(2) : args.slice(1);
+
+		if (children.length === 1 && type.call(children[0]) === ARRAY) {
+
+			cell.children = children[0]
+
+		}
+
+		else {
+
+			cell.children = children
+
+		}
+
+
+
+		for (var attrName in attrs) {
+
+			if (attrs.hasOwnProperty(attrName)) {
+
+				if (attrName === classAttrName && attrs[attrName] != null && attrs[attrName] !== "") {
+
+					classes.push(attrs[attrName])
+
+					cell.attrs[attrName] = "" //create key in correct iteration order
+
+				}
+
+				else cell.attrs[attrName] = attrs[attrName]
+
+			}
+
+		}
+
+		if (classes.length > 0) cell.attrs[classAttrName] = classes.join(" ");
+
+
+
+		return cell
+
+	}
+
+	function build(parentElement, parentTag, parentCache, parentIndex, data, cached, shouldReattach, index, editable, namespace, configs) {
+
+		//`build` is a recursive function that manages creation/diffing/removal of DOM elements based on comparison between `data` and `cached`
+
+		//the diff algorithm can be summarized as this:
+
+		//1 - compare `data` and `cached`
+
+		//2 - if they are different, copy `data` to `cached` and update the DOM based on what the difference is
+
+		//3 - recursively apply this algorithm for every array and for the children of every virtual element
+
+
+
+		//the `cached` data structure is essentially the same as the previous redraw's `data` data structure, with a few additions:
+
+		//- `cached` always has a property called `nodes`, which is a list of DOM elements that correspond to the data represented by the respective virtual element
+
+		//- in order to support attaching `nodes` as a property of `cached`, `cached` is *always* a non-primitive object, i.e. if the data was a string, then cached is a String instance. If data was `null` or `undefined`, cached is `new String("")`
+
+		//- `cached also has a `configContext` property, which is the state storage object exposed by config(element, isInitialized, context)
+
+		//- when `cached` is an Object, it represents a virtual element; when it's an Array, it represents a list of elements; when it's a String, Number or Boolean, it represents a text node
+
+
+
+		//`parentElement` is a DOM element used for W3C DOM API calls
+
+		//`parentTag` is only used for handling a corner case for textarea values
+
+		//`parentCache` is used to remove nodes in some multi-node cases
+
+		//`parentIndex` and `index` are used to figure out the offset of nodes. They're artifacts from before arrays started being flattened and are likely refactorable
+
+		//`data` and `cached` are, respectively, the new and old nodes being diffed
+
+		//`shouldReattach` is a flag indicating whether a parent node was recreated (if so, and if this node is reused, then this node must reattach itself to the new parent)
+
+		//`editable` is a flag that indicates whether an ancestor is contenteditable
+
+		//`namespace` indicates the closest HTML namespace as it cascades down from an ancestor
+
+		//`configs` is a list of config functions to run after the topmost `build` call finishes running
+
+
+
+		//there's logic that relies on the assumption that null and undefined data are equivalent to empty strings
+
+		//- this prevents lifecycle surprises from procedural helpers that mix implicit and explicit return statements (e.g. function foo() {if (cond) return m("div")}
+
+		//- it simplifies diffing code
+
+		//data.toString() might throw or return null if data is the return value of Console.log in Firefox (behavior depends on version)
+
+		try {if (data == null || data.toString() == null) data = "";} catch (e) {data = ""}
+
+		if (data.subtree === "retain") return cached;
+
+		var cachedType = type.call(cached), dataType = type.call(data);
+
+		if (cached == null || cachedType !== dataType) {
+
+			if (cached != null) {
+
+				if (parentCache && parentCache.nodes) {
+
+					var offset = index - parentIndex;
+
+					var end = offset + (dataType === ARRAY ? data : cached.nodes).length;
+
+					clear(parentCache.nodes.slice(offset, end), parentCache.slice(offset, end))
+
+				}
+
+				else if (cached.nodes) clear(cached.nodes, cached)
+
+			}
+
+			cached = new data.constructor;
+
+			if (cached.tag) cached = {}; //if constructor creates a virtual dom element, use a blank object as the base cached node instead of copying the virtual el (#277)
+
+			cached.nodes = []
+
+		}
+
+
+
+		if (dataType === ARRAY) {
+
+			//recursively flatten array
+
+			for (var i = 0, len = data.length; i < len; i++) {
+
+				if (type.call(data[i]) === ARRAY) {
+
+					data = data.concat.apply([], data);
+
+					i-- //check current index again and flatten until there are no more nested arrays at that index
+
+					len = data.length
+
+				}
+
+			}
+
+
+
+			var nodes = [], intact = cached.length === data.length, subArrayCount = 0;
+
+
+
+			//keys algorithm: sort elements without recreating them if keys are present
+
+			//1) create a map of all existing keys, and mark all for deletion
+
+			//2) add new keys to map and mark them for addition
+
+			//3) if key exists in new list, change action from deletion to a move
+
+			//4) for each key, handle its corresponding action as marked in previous steps
+
+			var DELETION = 1, INSERTION = 2 , MOVE = 3;
+
+			var existing = {}, shouldMaintainIdentities = false;
+
+			for (var i = 0; i < cached.length; i++) {
+
+				if (cached[i] && cached[i].attrs && cached[i].attrs.key != null) {
+
+					shouldMaintainIdentities = true;
+
+					existing[cached[i].attrs.key] = {action: DELETION, index: i}
+
+				}
+
+			}
+
+
+
+			var guid = 0
+
+			for (var i = 0, len = data.length; i < len; i++) {
+
+				if (data[i] && data[i].attrs && data[i].attrs.key != null) {
+
+					for (var j = 0, len = data.length; j < len; j++) {
+
+						if (data[j] && data[j].attrs && data[j].attrs.key == null) data[j].attrs.key = "__mithril__" + guid++
+
+					}
+
+					break
+
+				}
+
+			}
+
+
+
+			if (shouldMaintainIdentities) {
+
+				var keysDiffer = false
+
+				if (data.length != cached.length) keysDiffer = true
+
+				else for (var i = 0, cachedCell, dataCell; cachedCell = cached[i], dataCell = data[i]; i++) {
+
+					if (cachedCell.attrs && dataCell.attrs && cachedCell.attrs.key != dataCell.attrs.key) {
+
+						keysDiffer = true
+
+						break
+
+					}
+
+				}
+
+
+
+				if (keysDiffer) {
+
+					for (var i = 0, len = data.length; i < len; i++) {
+
+						if (data[i] && data[i].attrs) {
+
+							if (data[i].attrs.key != null) {
+
+								var key = data[i].attrs.key;
+
+								if (!existing[key]) existing[key] = {action: INSERTION, index: i};
+
+								else existing[key] = {
+
+									action: MOVE,
+
+									index: i,
+
+									from: existing[key].index,
+
+									element: cached.nodes[existing[key].index] || $document.createElement("div")
+
+								}
+
+							}
+
+						}
+
+					}
+
+					var actions = []
+
+					for (var prop in existing) actions.push(existing[prop])
+
+					var changes = actions.sort(sortChanges);
+
+					var newCached = new Array(cached.length)
+
+					newCached.nodes = cached.nodes.slice()
+
+
+
+					for (var i = 0, change; change = changes[i]; i++) {
+
+						if (change.action === DELETION) {
+
+							clear(cached[change.index].nodes, cached[change.index]);
+
+							newCached.splice(change.index, 1)
+
+						}
+
+						if (change.action === INSERTION) {
+
+							var dummy = $document.createElement("div");
+
+							dummy.key = data[change.index].attrs.key;
+
+							parentElement.insertBefore(dummy, parentElement.childNodes[change.index] || null);
+
+							newCached.splice(change.index, 0, {attrs: {key: data[change.index].attrs.key}, nodes: [dummy]})
+
+							newCached.nodes[change.index] = dummy
+
+						}
+
+
+
+						if (change.action === MOVE) {
+
+							if (parentElement.childNodes[change.index] !== change.element && change.element !== null) {
+
+								parentElement.insertBefore(change.element, parentElement.childNodes[change.index] || null)
+
+							}
+
+							newCached[change.index] = cached[change.from]
+
+							newCached.nodes[change.index] = change.element
+
+						}
+
+					}
+
+					cached = newCached;
+
+				}
+
+			}
+
+			//end key algorithm
+
+
+
+			for (var i = 0, cacheCount = 0, len = data.length; i < len; i++) {
+
+				//diff each item in the array
+
+				var item = build(parentElement, parentTag, cached, index, data[i], cached[cacheCount], shouldReattach, index + subArrayCount || subArrayCount, editable, namespace, configs);
+
+				if (item === undefined) continue;
+
+				if (!item.nodes.intact) intact = false;
+
+				if (item.$trusted) {
+
+					//fix offset of next element if item was a trusted string w/ more than one html element
+
+					//the first clause in the regexp matches elements
+
+					//the second clause (after the pipe) matches text nodes
+
+					subArrayCount += (item.match(/<[^\/]|\>\s*[^<]/g) || [0]).length
+
+				}
+
+				else subArrayCount += type.call(item) === ARRAY ? item.length : 1;
+
+				cached[cacheCount++] = item
+
+			}
+
+			if (!intact) {
+
+				//diff the array itself
+
+
+
+				//update the list of DOM nodes by collecting the nodes from each item
+
+				for (var i = 0, len = data.length; i < len; i++) {
+
+					if (cached[i] != null) nodes.push.apply(nodes, cached[i].nodes)
+
+				}
+
+				//remove items from the end of the array if the new array is shorter than the old one
+
+				//if errors ever happen here, the issue is most likely a bug in the construction of the `cached` data structure somewhere earlier in the program
+
+				for (var i = 0, node; node = cached.nodes[i]; i++) {
+
+					if (node.parentNode != null && nodes.indexOf(node) < 0) clear([node], [cached[i]])
+
+				}
+
+				if (data.length < cached.length) cached.length = data.length;
+
+				cached.nodes = nodes
+
+			}
+
+		}
+
+		else if (data != null && dataType === OBJECT) {
+
+			var views = [], controllers = []
+
+			while (data.view) {
+
+				var view = data.view.$original || data.view
+
+				var controllerIndex = m.redraw.strategy() == "diff" && cached.views ? cached.views.indexOf(view) : -1
+
+				var controller = controllerIndex > -1 ? cached.controllers[controllerIndex] : new (data.controller || noop)
+
+				var key = data && data.attrs && data.attrs.key
+
+				data = pendingRequests == 0 || (cached && cached.controllers && cached.controllers.indexOf(controller) > -1) ? data.view(controller) : {tag: "placeholder"}
+
+				if (data.subtree === "retain") return cached;
+
+				if (key) {
+
+					if (!data.attrs) data.attrs = {}
+
+					data.attrs.key = key
+
+				}
+
+				if (controller.onunload) unloaders.push({controller: controller, handler: controller.onunload})
+
+				views.push(view)
+
+				controllers.push(controller)
+
+			}
+
+			if (!data.tag && controllers.length) throw new Error("Component template must return a virtual element, not an array, string, etc.")
+
+			if (!data.attrs) data.attrs = {};
+
+			if (!cached.attrs) cached.attrs = {};
+
+
+
+			var dataAttrKeys = Object.keys(data.attrs)
+
+			var hasKeys = dataAttrKeys.length > ("key" in data.attrs ? 1 : 0)
+
+			//if an element is different enough from the one in cache, recreate it
+
+			if (data.tag != cached.tag || dataAttrKeys.sort().join() != Object.keys(cached.attrs).sort().join() || data.attrs.id != cached.attrs.id || data.attrs.key != cached.attrs.key || (m.redraw.strategy() == "all" && (!cached.configContext || cached.configContext.retain !== true)) || (m.redraw.strategy() == "diff" && cached.configContext && cached.configContext.retain === false)) {
+
+				if (cached.nodes.length) clear(cached.nodes);
+
+				if (cached.configContext && typeof cached.configContext.onunload === FUNCTION) cached.configContext.onunload()
+
+				if (cached.controllers) {
+
+					for (var i = 0, controller; controller = cached.controllers[i]; i++) {
+
+						if (typeof controller.onunload === FUNCTION) controller.onunload({preventDefault: noop})
+
+					}
+
+				}
+
+			}
+
+			if (type.call(data.tag) != STRING) return;
+
+
+
+			var node, isNew = cached.nodes.length === 0;
+
+			if (data.attrs.xmlns) namespace = data.attrs.xmlns;
+
+			else if (data.tag === "svg") namespace = "http://www.w3.org/2000/svg";
+
+			else if (data.tag === "math") namespace = "http://www.w3.org/1998/Math/MathML";
+
+
+
+			if (isNew) {
+
+				if (data.attrs.is) node = namespace === undefined ? $document.createElement(data.tag, data.attrs.is) : $document.createElementNS(namespace, data.tag, data.attrs.is);
+
+				else node = namespace === undefined ? $document.createElement(data.tag) : $document.createElementNS(namespace, data.tag);
+
+				cached = {
+
+					tag: data.tag,
+
+					//set attributes first, then create children
+
+					attrs: hasKeys ? setAttributes(node, data.tag, data.attrs, {}, namespace) : data.attrs,
+
+					children: data.children != null && data.children.length > 0 ?
+
+						build(node, data.tag, undefined, undefined, data.children, cached.children, true, 0, data.attrs.contenteditable ? node : editable, namespace, configs) :
+
+						data.children,
+
+					nodes: [node]
+
+				};
+
+				if (controllers.length) {
+
+					cached.views = views
+
+					cached.controllers = controllers
+
+					for (var i = 0, controller; controller = controllers[i]; i++) {
+
+						if (controller.onunload && controller.onunload.$old) controller.onunload = controller.onunload.$old
+
+						if (pendingRequests && controller.onunload) {
+
+							var onunload = controller.onunload
+
+							controller.onunload = noop
+
+							controller.onunload.$old = onunload
+
+						}
+
+					}
+
+				}
+
+
+
+				if (cached.children && !cached.children.nodes) cached.children.nodes = [];
+
+				//edge case: setting value on <select> doesn't work before children exist, so set it again after children have been created
+
+				if (data.tag === "select" && "value" in data.attrs) setAttributes(node, data.tag, {value: data.attrs.value}, {}, namespace);
+
+				parentElement.insertBefore(node, parentElement.childNodes[index] || null)
+
+			}
+
+			else {
+
+				node = cached.nodes[0];
+
+				if (hasKeys) setAttributes(node, data.tag, data.attrs, cached.attrs, namespace);
+
+				cached.children = build(node, data.tag, undefined, undefined, data.children, cached.children, false, 0, data.attrs.contenteditable ? node : editable, namespace, configs);
+
+				cached.nodes.intact = true;
+
+				if (controllers.length) {
+
+					cached.views = views
+
+					cached.controllers = controllers
+
+				}
+
+				if (shouldReattach === true && node != null) parentElement.insertBefore(node, parentElement.childNodes[index] || null)
+
+			}
+
+			//schedule configs to be called. They are called after `build` finishes running
+
+			if (typeof data.attrs["config"] === FUNCTION) {
+
+				var context = cached.configContext = cached.configContext || {};
+
+
+
+				// bind
+
+				var callback = function(data, args) {
+
+					return function() {
+
+						return data.attrs["config"].apply(data, args)
+
+					}
+
+				};
+
+				configs.push(callback(data, [node, !isNew, context, cached]))
+
+			}
+
+		}
+
+		else if (typeof data != FUNCTION) {
+
+			//handle text nodes
+
+			var nodes;
+
+			if (cached.nodes.length === 0) {
+
+				if (data.$trusted) {
+
+					nodes = injectHTML(parentElement, index, data)
+
+				}
+
+				else {
+
+					nodes = [$document.createTextNode(data)];
+
+					if (!parentElement.nodeName.match(voidElements)) parentElement.insertBefore(nodes[0], parentElement.childNodes[index] || null)
+
+				}
+
+				cached = "string number boolean".indexOf(typeof data) > -1 ? new data.constructor(data) : data;
+
+				cached.nodes = nodes
+
+			}
+
+			else if (cached.valueOf() !== data.valueOf() || shouldReattach === true) {
+
+				nodes = cached.nodes;
+
+				if (!editable || editable !== $document.activeElement) {
+
+					if (data.$trusted) {
+
+						clear(nodes, cached);
+
+						nodes = injectHTML(parentElement, index, data)
+
+					}
+
+					else {
+
+						//corner case: replacing the nodeValue of a text node that is a child of a textarea/contenteditable doesn't work
+
+						//we need to update the value property of the parent textarea or the innerHTML of the contenteditable element instead
+
+						if (parentTag === "textarea") parentElement.value = data;
+
+						else if (editable) editable.innerHTML = data;
+
+						else {
+
+							if (nodes[0].nodeType === 1 || nodes.length > 1) { //was a trusted string
+
+								clear(cached.nodes, cached);
+
+								nodes = [$document.createTextNode(data)]
+
+							}
+
+							parentElement.insertBefore(nodes[0], parentElement.childNodes[index] || null);
+
+							nodes[0].nodeValue = data
+
+						}
+
+					}
+
+				}
+
+				cached = new data.constructor(data);
+
+				cached.nodes = nodes
+
+			}
+
+			else cached.nodes.intact = true
+
+		}
+
+
+
+		return cached
+
+	}
+
+	function sortChanges(a, b) {return a.action - b.action || a.index - b.index}
+
+	function setAttributes(node, tag, dataAttrs, cachedAttrs, namespace) {
+
+		for (var attrName in dataAttrs) {
+
+			var dataAttr = dataAttrs[attrName];
+
+			var cachedAttr = cachedAttrs[attrName];
+
+			if (!(attrName in cachedAttrs) || (cachedAttr !== dataAttr)) {
+
+				cachedAttrs[attrName] = dataAttr;
+
+				try {
+
+					//`config` isn't a real attributes, so ignore it
+
+					if (attrName === "config" || attrName == "key") continue;
+
+					//hook event handlers to the auto-redrawing system
+
+					else if (typeof dataAttr === FUNCTION && attrName.indexOf("on") === 0) {
+
+						node[attrName] = autoredraw(dataAttr, node)
+
+					}
+
+					//handle `style: {...}`
+
+					else if (attrName === "style" && dataAttr != null && type.call(dataAttr) === OBJECT) {
+
+						for (var rule in dataAttr) {
+
+							if (cachedAttr == null || cachedAttr[rule] !== dataAttr[rule]) node.style[rule] = dataAttr[rule]
+
+						}
+
+						for (var rule in cachedAttr) {
+
+							if (!(rule in dataAttr)) node.style[rule] = ""
+
+						}
+
+					}
+
+					//handle SVG
+
+					else if (namespace != null) {
+
+						if (attrName === "href") node.setAttributeNS("http://www.w3.org/1999/xlink", "href", dataAttr);
+
+						else if (attrName === "className") node.setAttribute("class", dataAttr);
+
+						else node.setAttribute(attrName, dataAttr)
+
+					}
+
+					//handle cases that are properties (but ignore cases where we should use setAttribute instead)
+
+					//- list and form are typically used as strings, but are DOM element references in js
+
+					//- when using CSS selectors (e.g. `m("[style='']")`), style is used as a string, but it's an object in js
+
+					else if (attrName in node && !(attrName === "list" || attrName === "style" || attrName === "form" || attrName === "type" || attrName === "width" || attrName === "height")) {
+
+						//#348 don't set the value if not needed otherwise cursor placement breaks in Chrome
+
+						if (tag !== "input" || node[attrName] !== dataAttr) node[attrName] = dataAttr
+
+					}
+
+					else node.setAttribute(attrName, dataAttr)
+
+				}
+
+				catch (e) {
+
+					//swallow IE's invalid argument errors to mimic HTML's fallback-to-doing-nothing-on-invalid-attributes behavior
+
+					if (e.message.indexOf("Invalid argument") < 0) throw e
+
+				}
+
+			}
+
+			//#348 dataAttr may not be a string, so use loose comparison (double equal) instead of strict (triple equal)
+
+			else if (attrName === "value" && tag === "input" && node.value != dataAttr) {
+
+				node.value = dataAttr
+
+			}
+
+		}
+
+		return cachedAttrs
+
+	}
+
+	function clear(nodes, cached) {
+
+		for (var i = nodes.length - 1; i > -1; i--) {
+
+			if (nodes[i] && nodes[i].parentNode) {
+
+				try {nodes[i].parentNode.removeChild(nodes[i])}
+
+				catch (e) {} //ignore if this fails due to order of events (see http://stackoverflow.com/questions/21926083/failed-to-execute-removechild-on-node)
+
+				cached = [].concat(cached);
+
+				if (cached[i]) unload(cached[i])
+
+			}
+
+		}
+
+		if (nodes.length != 0) nodes.length = 0
+
+	}
+
+	function unload(cached) {
+
+		if (cached.configContext && typeof cached.configContext.onunload === FUNCTION) {
+
+			cached.configContext.onunload();
+
+			cached.configContext.onunload = null
+
+		}
+
+		if (cached.controllers) {
+
+			for (var i = 0, controller; controller = cached.controllers[i]; i++) {
+
+				if (typeof controller.onunload === FUNCTION) controller.onunload({preventDefault: noop});
+
+			}
+
+		}
+
+		if (cached.children) {
+
+			if (type.call(cached.children) === ARRAY) {
+
+				for (var i = 0, child; child = cached.children[i]; i++) unload(child)
+
+			}
+
+			else if (cached.children.tag) unload(cached.children)
+
+		}
+
+	}
+
+	function injectHTML(parentElement, index, data) {
+
+		var nextSibling = parentElement.childNodes[index];
+
+		if (nextSibling) {
+
+			var isElement = nextSibling.nodeType != 1;
+
+			var placeholder = $document.createElement("span");
+
+			if (isElement) {
+
+				parentElement.insertBefore(placeholder, nextSibling || null);
+
+				placeholder.insertAdjacentHTML("beforebegin", data);
+
+				parentElement.removeChild(placeholder)
+
+			}
+
+			else nextSibling.insertAdjacentHTML("beforebegin", data)
+
+		}
+
+		else parentElement.insertAdjacentHTML("beforeend", data);
+
+		var nodes = [];
+
+		while (parentElement.childNodes[index] !== nextSibling) {
+
+			nodes.push(parentElement.childNodes[index]);
+
+			index++
+
+		}
+
+		return nodes
+
+	}
+
+	function autoredraw(callback, object) {
+
+		return function(e) {
+
+			e = e || event;
+
+			m.redraw.strategy("diff");
+
+			m.startComputation();
+
+			try {return callback.call(object, e)}
+
+			finally {
+
+				endFirstComputation()
+
+			}
+
+		}
+
+	}
+
+
+
+	var html;
+
+	var documentNode = {
+
+		appendChild: function(node) {
+
+			if (html === undefined) html = $document.createElement("html");
+
+			if ($document.documentElement && $document.documentElement !== node) {
+
+				$document.replaceChild(node, $document.documentElement)
+
+			}
+
+			else $document.appendChild(node);
+
+			this.childNodes = $document.childNodes
+
+		},
+
+		insertBefore: function(node) {
+
+			this.appendChild(node)
+
+		},
+
+		childNodes: []
+
+	};
+
+	var nodeCache = [], cellCache = {};
+
+	m.render = function(root, cell, forceRecreation) {
+
+		var configs = [];
+
+		if (!root) throw new Error("Ensure the DOM element being passed to m.route/m.mount/m.render is not undefined.");
+
+		var id = getCellCacheKey(root);
+
+		var isDocumentRoot = root === $document;
+
+		var node = isDocumentRoot || root === $document.documentElement ? documentNode : root;
+
+		if (isDocumentRoot && cell.tag != "html") cell = {tag: "html", attrs: {}, children: cell};
+
+		if (cellCache[id] === undefined) clear(node.childNodes);
+
+		if (forceRecreation === true) reset(root);
+
+		cellCache[id] = build(node, null, undefined, undefined, cell, cellCache[id], false, 0, null, undefined, configs);
+
+		for (var i = 0, len = configs.length; i < len; i++) configs[i]()
+
+	};
+
+	function getCellCacheKey(element) {
+
+		var index = nodeCache.indexOf(element);
+
+		return index < 0 ? nodeCache.push(element) - 1 : index
+
+	}
+
+
+
+	m.trust = function(value) {
+
+		value = new String(value);
+
+		value.$trusted = true;
+
+		return value
+
+	};
+
+
+
+	function gettersetter(store) {
+
+		var prop = function() {
+
+			if (arguments.length) store = arguments[0];
+
+			return store
+
+		};
+
+
+
+		prop.toJSON = function() {
+
+			return store
+
+		};
+
+
+
+		return prop
+
+	}
+
+
+
+	m.prop = function (store) {
+
+		//note: using non-strict equality check here because we're checking if store is null OR undefined
+
+		if (((store != null && type.call(store) === OBJECT) || typeof store === FUNCTION) && typeof store.then === FUNCTION) {
+
+			return propify(store)
+
+		}
+
+
+
+		return gettersetter(store)
+
+	};
+
+
+
+	var roots = [], components = [], controllers = [], lastRedrawId = null, lastRedrawCallTime = 0, computePreRedrawHook = null, computePostRedrawHook = null, prevented = false, topComponent, unloaders = [];
+
+	var FRAME_BUDGET = 16; //60 frames per second = 1 call per 16 ms
+
+	function parameterize(component, args) {
+
+		var controller = function() {
+
+			return (component.controller || noop).apply(this, args) || this
+
+		}
+
+		var view = function(ctrl) {
+
+			if (arguments.length > 1) args = args.concat([].slice.call(arguments, 1))
+
+			return component.view.apply(component, args ? [ctrl].concat(args) : [ctrl])
+
+		}
+
+		view.$original = component.view
+
+		var output = {controller: controller, view: view}
+
+		if (args[0] && args[0].key != null) output.attrs = {key: args[0].key}
+
+		return output
+
+	}
+
+	m.component = function(component) {
+
+		return parameterize(component, [].slice.call(arguments, 1))
+
+	}
+
+	m.mount = m.module = function(root, component) {
+
+		if (!root) throw new Error("Please ensure the DOM element exists before rendering a template into it.");
+
+		var index = roots.indexOf(root);
+
+		if (index < 0) index = roots.length;
+
+
+
+		var isPrevented = false;
+
+		var event = {preventDefault: function() {
+
+			isPrevented = true;
+
+			computePreRedrawHook = computePostRedrawHook = null;
+
+		}};
+
+		for (var i = 0, unloader; unloader = unloaders[i]; i++) {
+
+			unloader.handler.call(unloader.controller, event)
+
+			unloader.controller.onunload = null
+
+		}
+
+		if (isPrevented) {
+
+			for (var i = 0, unloader; unloader = unloaders[i]; i++) unloader.controller.onunload = unloader.handler
+
+		}
+
+		else unloaders = []
+
+
+
+		if (controllers[index] && typeof controllers[index].onunload === FUNCTION) {
+
+			controllers[index].onunload(event)
+
+		}
+
+
+
+		if (!isPrevented) {
+
+			m.redraw.strategy("all");
+
+			m.startComputation();
+
+			roots[index] = root;
+
+			if (arguments.length > 2) component = subcomponent(component, [].slice.call(arguments, 2))
+
+			var currentComponent = topComponent = component = component || {controller: function() {}};
+
+			var constructor = component.controller || noop
+
+			var controller = new constructor;
+
+			//controllers may call m.mount recursively (via m.route redirects, for example)
+
+			//this conditional ensures only the last recursive m.mount call is applied
+
+			if (currentComponent === topComponent) {
+
+				controllers[index] = controller;
+
+				components[index] = component
+
+			}
+
+			endFirstComputation();
+
+			return controllers[index]
+
+		}
+
+	};
+
+	var redrawing = false
+
+	m.redraw = function(force) {
+
+		if (redrawing) return
+
+		redrawing = true
+
+		//lastRedrawId is a positive number if a second redraw is requested before the next animation frame
+
+		//lastRedrawID is null if it's the first redraw and not an event handler
+
+		if (lastRedrawId && force !== true) {
+
+			//when setTimeout: only reschedule redraw if time between now and previous redraw is bigger than a frame, otherwise keep currently scheduled timeout
+
+			//when rAF: always reschedule redraw
+
+			if ($requestAnimationFrame === window.requestAnimationFrame || new Date - lastRedrawCallTime > FRAME_BUDGET) {
+
+				if (lastRedrawId > 0) $cancelAnimationFrame(lastRedrawId);
+
+				lastRedrawId = $requestAnimationFrame(redraw, FRAME_BUDGET)
+
+			}
+
+		}
+
+		else {
+
+			redraw();
+
+			lastRedrawId = $requestAnimationFrame(function() {lastRedrawId = null}, FRAME_BUDGET)
+
+		}
+
+		redrawing = false
+
+	};
+
+	m.redraw.strategy = m.prop();
+
+	function redraw() {
+
+		if (computePreRedrawHook) {
+
+			computePreRedrawHook()
+
+			computePreRedrawHook = null
+
+		}
+
+		for (var i = 0, root; root = roots[i]; i++) {
+
+			if (controllers[i]) {
+
+				var args = components[i].controller && components[i].controller.$$args ? [controllers[i]].concat(components[i].controller.$$args) : [controllers[i]]
+
+				m.render(root, components[i].view ? components[i].view(controllers[i], args) : "")
+
+			}
+
+		}
+
+		//after rendering within a routed context, we need to scroll back to the top, and fetch the document title for history.pushState
+
+		if (computePostRedrawHook) {
+
+			computePostRedrawHook();
+
+			computePostRedrawHook = null
+
+		}
+
+		lastRedrawId = null;
+
+		lastRedrawCallTime = new Date;
+
+		m.redraw.strategy("diff")
+
+	}
+
+
+
+	var pendingRequests = 0;
+
+	m.startComputation = function() {pendingRequests++};
+
+	m.endComputation = function() {
+
+		pendingRequests = Math.max(pendingRequests - 1, 0);
+
+		if (pendingRequests === 0) m.redraw()
+
+	};
+
+	var endFirstComputation = function() {
+
+		if (m.redraw.strategy() == "none") {
+
+			pendingRequests--
+
+			m.redraw.strategy("diff")
+
+		}
+
+		else m.endComputation();
+
+	}
+
+
+
+	m.withAttr = function(prop, withAttrCallback) {
+
+		return function(e) {
+
+			e = e || event;
+
+			var currentTarget = e.currentTarget || this;
+
+			withAttrCallback(prop in currentTarget ? currentTarget[prop] : currentTarget.getAttribute(prop))
+
+		}
+
+	};
+
+
+
+	//routing
+
+	var modes = {pathname: "", hash: "#", search: "?"};
+
+	var redirect = noop, routeParams, currentRoute, isDefaultRoute = false;
+
+	m.route = function() {
+
+		//m.route()
+
+		if (arguments.length === 0) return currentRoute;
+
+		//m.route(el, defaultRoute, routes)
+
+		else if (arguments.length === 3 && type.call(arguments[1]) === STRING) {
+
+			var root = arguments[0], defaultRoute = arguments[1], router = arguments[2];
+
+			redirect = function(source) {
+
+				var path = currentRoute = normalizeRoute(source);
+
+				if (!routeByValue(root, router, path)) {
+
+					if (isDefaultRoute) throw new Error("Ensure the default route matches one of the routes defined in m.route")
+
+					isDefaultRoute = true
+
+					m.route(defaultRoute, true)
+
+					isDefaultRoute = false
+
+				}
+
+			};
+
+			var listener = m.route.mode === "hash" ? "onhashchange" : "onpopstate";
+
+			window[listener] = function() {
+
+				var path = $location[m.route.mode]
+
+				if (m.route.mode === "pathname") path += $location.search
+
+				if (currentRoute != normalizeRoute(path)) {
+
+					redirect(path)
+
+				}
+
+			};
+
+			computePreRedrawHook = setScroll;
+
+			window[listener]()
+
+		}
+
+		//config: m.route
+
+		else if (arguments[0].addEventListener || arguments[0].attachEvent) {
+
+			var element = arguments[0];
+
+			var isInitialized = arguments[1];
+
+			var context = arguments[2];
+
+			var vdom = arguments[3];
+
+			element.href = (m.route.mode !== 'pathname' ? $location.pathname : '') + modes[m.route.mode] + vdom.attrs.href;
+
+			if (element.addEventListener) {
+
+				element.removeEventListener("click", routeUnobtrusive);
+
+				element.addEventListener("click", routeUnobtrusive)
+
+			}
+
+			else {
+
+				element.detachEvent("onclick", routeUnobtrusive);
+
+				element.attachEvent("onclick", routeUnobtrusive)
+
+			}
+
+		}
+
+		//m.route(route, params, shouldReplaceHistoryEntry)
+
+		else if (type.call(arguments[0]) === STRING) {
+
+			var oldRoute = currentRoute;
+
+			currentRoute = arguments[0];
+
+			var args = arguments[1] || {}
+
+			var queryIndex = currentRoute.indexOf("?")
+
+			var params = queryIndex > -1 ? parseQueryString(currentRoute.slice(queryIndex + 1)) : {}
+
+			for (var i in args) params[i] = args[i]
+
+			var querystring = buildQueryString(params)
+
+			var currentPath = queryIndex > -1 ? currentRoute.slice(0, queryIndex) : currentRoute
+
+			if (querystring) currentRoute = currentPath + (currentPath.indexOf("?") === -1 ? "?" : "&") + querystring;
+
+
+
+			var shouldReplaceHistoryEntry = (arguments.length === 3 ? arguments[2] : arguments[1]) === true || oldRoute === arguments[0];
+
+
+
+			if (window.history.pushState) {
+
+				computePreRedrawHook = setScroll
+
+				computePostRedrawHook = function() {
+
+					window.history[shouldReplaceHistoryEntry ? "replaceState" : "pushState"](null, $document.title, modes[m.route.mode] + currentRoute);
+
+				};
+
+				redirect(modes[m.route.mode] + currentRoute)
+
+			}
+
+			else {
+
+				$location[m.route.mode] = currentRoute
+
+				redirect(modes[m.route.mode] + currentRoute)
+
+			}
+
+		}
+
+	};
+
+	m.route.param = function(key) {
+
+		if (!routeParams) throw new Error("You must call m.route(element, defaultRoute, routes) before calling m.route.param()")
+
+		return routeParams[key]
+
+	};
+
+	m.route.mode = "search";
+
+	function normalizeRoute(route) {
+
+		return route.slice(modes[m.route.mode].length)
+
+	}
+
+	function routeByValue(root, router, path) {
+
+		routeParams = {};
+
+
+
+		var queryStart = path.indexOf("?");
+
+		if (queryStart !== -1) {
+
+			routeParams = parseQueryString(path.substr(queryStart + 1, path.length));
+
+			path = path.substr(0, queryStart)
+
+		}
+
+
+
+		// Get all routes and check if there's
+
+		// an exact match for the current path
+
+		var keys = Object.keys(router);
+
+		var index = keys.indexOf(path);
+
+		if(index !== -1){
+
+			m.mount(root, router[keys [index]]);
+
+			return true;
+
+		}
+
+
+
+		for (var route in router) {
+
+			if (route === path) {
+
+				m.mount(root, router[route]);
+
+				return true
+
+			}
+
+
+
+			var matcher = new RegExp("^" + route.replace(/:[^\/]+?\.{3}/g, "(.*?)").replace(/:[^\/]+/g, "([^\\/]+)") + "\/?$");
+
+
+
+			if (matcher.test(path)) {
+
+				path.replace(matcher, function() {
+
+					var keys = route.match(/:[^\/]+/g) || [];
+
+					var values = [].slice.call(arguments, 1, -2);
+
+					for (var i = 0, len = keys.length; i < len; i++) routeParams[keys[i].replace(/:|\./g, "")] = decodeURIComponent(values[i])
+
+					m.mount(root, router[route])
+
+				});
+
+				return true
+
+			}
+
+		}
+
+	}
+
+	function routeUnobtrusive(e) {
+
+		e = e || event;
+
+		if (e.ctrlKey || e.metaKey || e.which === 2) return;
+
+		if (e.preventDefault) e.preventDefault();
+
+		else e.returnValue = false;
+
+		var currentTarget = e.currentTarget || e.srcElement;
+
+		var args = m.route.mode === "pathname" && currentTarget.search ? parseQueryString(currentTarget.search.slice(1)) : {};
+
+		while (currentTarget && currentTarget.nodeName.toUpperCase() != "A") currentTarget = currentTarget.parentNode
+
+		m.route(currentTarget[m.route.mode].slice(modes[m.route.mode].length), args)
+
+	}
+
+	function setScroll() {
+
+		if (m.route.mode != "hash" && $location.hash) $location.hash = $location.hash;
+
+		else window.scrollTo(0, 0)
+
+	}
+
+	function buildQueryString(object, prefix) {
+
+		var duplicates = {}
+
+		var str = []
+
+		for (var prop in object) {
+
+			var key = prefix ? prefix + "[" + prop + "]" : prop
+
+			var value = object[prop]
+
+			var valueType = type.call(value)
+
+			var pair = (value === null) ? encodeURIComponent(key) :
+
+				valueType === OBJECT ? buildQueryString(value, key) :
+
+				valueType === ARRAY ? value.reduce(function(memo, item) {
+
+					if (!duplicates[key]) duplicates[key] = {}
+
+					if (!duplicates[key][item]) {
+
+						duplicates[key][item] = true
+
+						return memo.concat(encodeURIComponent(key) + "=" + encodeURIComponent(item))
+
+					}
+
+					return memo
+
+				}, []).join("&") :
+
+				encodeURIComponent(key) + "=" + encodeURIComponent(value)
+
+			if (value !== undefined) str.push(pair)
+
+		}
+
+		return str.join("&")
+
+	}
+
+	function parseQueryString(str) {
+
+		if (str.charAt(0) === "?") str = str.substring(1);
+
+
+
+		var pairs = str.split("&"), params = {};
+
+		for (var i = 0, len = pairs.length; i < len; i++) {
+
+			var pair = pairs[i].split("=");
+
+			var key = decodeURIComponent(pair[0])
+
+			var value = pair.length == 2 ? decodeURIComponent(pair[1]) : null
+
+			if (params[key] != null) {
+
+				if (type.call(params[key]) !== ARRAY) params[key] = [params[key]]
+
+				params[key].push(value)
+
+			}
+
+			else params[key] = value
+
+		}
+
+		return params
+
+	}
+
+	m.route.buildQueryString = buildQueryString
+
+	m.route.parseQueryString = parseQueryString
+
+
+
+	function reset(root) {
+
+		var cacheKey = getCellCacheKey(root);
+
+		clear(root.childNodes, cellCache[cacheKey]);
+
+		cellCache[cacheKey] = undefined
+
+	}
+
+
+
+	m.deferred = function () {
+
+		var deferred = new Deferred();
+
+		deferred.promise = propify(deferred.promise);
+
+		return deferred
+
+	};
+
+	function propify(promise, initialValue) {
+
+		var prop = m.prop(initialValue);
+
+		promise.then(prop);
+
+		prop.then = function(resolve, reject) {
+
+			return propify(promise.then(resolve, reject), initialValue)
+
+		};
+
+		return prop
+
+	}
+
+	//Promiz.mithril.js | Zolmeister | MIT
+
+	//a modified version of Promiz.js, which does not conform to Promises/A+ for two reasons:
+
+	//1) `then` callbacks are called synchronously (because setTimeout is too slow, and the setImmediate polyfill is too big
+
+	//2) throwing subclasses of Error cause the error to be bubbled up instead of triggering rejection (because the spec does not account for the important use case of default browser error handling, i.e. message w/ line number)
+
+	function Deferred(successCallback, failureCallback) {
+
+		var RESOLVING = 1, REJECTING = 2, RESOLVED = 3, REJECTED = 4;
+
+		var self = this, state = 0, promiseValue = 0, next = [];
+
+
+
+		self["promise"] = {};
+
+
+
+		self["resolve"] = function(value) {
+
+			if (!state) {
+
+				promiseValue = value;
+
+				state = RESOLVING;
+
+
+
+				fire()
+
+			}
+
+			return this
+
+		};
+
+
+
+		self["reject"] = function(value) {
+
+			if (!state) {
+
+				promiseValue = value;
+
+				state = REJECTING;
+
+
+
+				fire()
+
+			}
+
+			return this
+
+		};
+
+
+
+		self.promise["then"] = function(successCallback, failureCallback) {
+
+			var deferred = new Deferred(successCallback, failureCallback);
+
+			if (state === RESOLVED) {
+
+				deferred.resolve(promiseValue)
+
+			}
+
+			else if (state === REJECTED) {
+
+				deferred.reject(promiseValue)
+
+			}
+
+			else {
+
+				next.push(deferred)
+
+			}
+
+			return deferred.promise
+
+		};
+
+
+
+		function finish(type) {
+
+			state = type || REJECTED;
+
+			next.map(function(deferred) {
+
+				state === RESOLVED && deferred.resolve(promiseValue) || deferred.reject(promiseValue)
+
+			})
+
+		}
+
+
+
+		function thennable(then, successCallback, failureCallback, notThennableCallback) {
+
+			if (((promiseValue != null && type.call(promiseValue) === OBJECT) || typeof promiseValue === FUNCTION) && typeof then === FUNCTION) {
+
+				try {
+
+					// count protects against abuse calls from spec checker
+
+					var count = 0;
+
+					then.call(promiseValue, function(value) {
+
+						if (count++) return;
+
+						promiseValue = value;
+
+						successCallback()
+
+					}, function (value) {
+
+						if (count++) return;
+
+						promiseValue = value;
+
+						failureCallback()
+
+					})
+
+				}
+
+				catch (e) {
+
+					m.deferred.onerror(e);
+
+					promiseValue = e;
+
+					failureCallback()
+
+				}
+
+			} else {
+
+				notThennableCallback()
+
+			}
+
+		}
+
+
+
+		function fire() {
+
+			// check if it's a thenable
+
+			var then;
+
+			try {
+
+				then = promiseValue && promiseValue.then
+
+			}
+
+			catch (e) {
+
+				m.deferred.onerror(e);
+
+				promiseValue = e;
+
+				state = REJECTING;
+
+				return fire()
+
+			}
+
+			thennable(then, function() {
+
+				state = RESOLVING;
+
+				fire()
+
+			}, function() {
+
+				state = REJECTING;
+
+				fire()
+
+			}, function() {
+
+				try {
+
+					if (state === RESOLVING && typeof successCallback === FUNCTION) {
+
+						promiseValue = successCallback(promiseValue)
+
+					}
+
+					else if (state === REJECTING && typeof failureCallback === "function") {
+
+						promiseValue = failureCallback(promiseValue);
+
+						state = RESOLVING
+
+					}
+
+				}
+
+				catch (e) {
+
+					m.deferred.onerror(e);
+
+					promiseValue = e;
+
+					return finish()
+
+				}
+
+
+
+				if (promiseValue === self) {
+
+					promiseValue = TypeError();
+
+					finish()
+
+				}
+
+				else {
+
+					thennable(then, function () {
+
+						finish(RESOLVED)
+
+					}, finish, function () {
+
+						finish(state === RESOLVING && RESOLVED)
+
+					})
+
+				}
+
+			})
+
+		}
+
+	}
+
+	m.deferred.onerror = function(e) {
+
+		if (type.call(e) === "[object Error]" && !e.constructor.toString().match(/ Error/)) throw e
+
+	};
+
+
+
+	m.sync = function(args) {
+
+		var method = "resolve";
+
+		function synchronizer(pos, resolved) {
+
+			return function(value) {
+
+				results[pos] = value;
+
+				if (!resolved) method = "reject";
+
+				if (--outstanding === 0) {
+
+					deferred.promise(results);
+
+					deferred[method](results)
+
+				}
+
+				return value
+
+			}
+
+		}
+
+
+
+		var deferred = m.deferred();
+
+		var outstanding = args.length;
+
+		var results = new Array(outstanding);
+
+		if (args.length > 0) {
+
+			for (var i = 0; i < args.length; i++) {
+
+				args[i].then(synchronizer(i, true), synchronizer(i, false))
+
+			}
+
+		}
+
+		else deferred.resolve([]);
+
+
+
+		return deferred.promise
+
+	};
+
+	function identity(value) {return value}
+
+
+
+	function ajax(options) {
+
+		if (options.dataType && options.dataType.toLowerCase() === "jsonp") {
+
+			var callbackKey = "mithril_callback_" + new Date().getTime() + "_" + (Math.round(Math.random() * 1e16)).toString(36);
+
+			var script = $document.createElement("script");
+
+
+
+			window[callbackKey] = function(resp) {
+
+				script.parentNode.removeChild(script);
+
+				options.onload({
+
+					type: "load",
+
+					target: {
+
+						responseText: resp
+
+					}
+
+				});
+
+				window[callbackKey] = undefined
+
+			};
+
+
+
+			script.onerror = function(e) {
+
+				script.parentNode.removeChild(script);
+
+
+
+				options.onerror({
+
+					type: "error",
+
+					target: {
+
+						status: 500,
+
+						responseText: JSON.stringify({error: "Error making jsonp request"})
+
+					}
+
+				});
+
+				window[callbackKey] = undefined;
+
+
+
+				return false
+
+			};
+
+
+
+			script.onload = function(e) {
+
+				return false
+
+			};
+
+
+
+			script.src = options.url
+
+				+ (options.url.indexOf("?") > 0 ? "&" : "?")
+
+				+ (options.callbackKey ? options.callbackKey : "callback")
+
+				+ "=" + callbackKey
+
+				+ "&" + buildQueryString(options.data || {});
+
+			$document.body.appendChild(script)
+
+		}
+
+		else {
+
+			var xhr = new window.XMLHttpRequest;
+
+			xhr.open(options.method, options.url, true, options.user, options.password);
+
+			xhr.onreadystatechange = function() {
+
+				if (xhr.readyState === 4) {
+
+					if (xhr.status >= 200 && xhr.status < 300) options.onload({type: "load", target: xhr});
+
+					else options.onerror({type: "error", target: xhr})
+
+				}
+
+			};
+
+			if (options.serialize === JSON.stringify && options.data && options.method !== "GET") {
+
+				xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8")
+
+			}
+
+			if (options.deserialize === JSON.parse) {
+
+				xhr.setRequestHeader("Accept", "application/json, text/*");
+
+			}
+
+			if (typeof options.config === FUNCTION) {
+
+				var maybeXhr = options.config(xhr, options);
+
+				if (maybeXhr != null) xhr = maybeXhr
+
+			}
+
+
+
+			var data = options.method === "GET" || !options.data ? "" : options.data
+
+			if (data && (type.call(data) != STRING && data.constructor != window.FormData)) {
+
+				throw "Request data should be either be a string or FormData. Check the `serialize` option in `m.request`";
+
+			}
+
+			xhr.send(data);
+
+			return xhr
+
+		}
+
+	}
+
+	function bindData(xhrOptions, data, serialize) {
+
+		if (xhrOptions.method === "GET" && xhrOptions.dataType != "jsonp") {
+
+			var prefix = xhrOptions.url.indexOf("?") < 0 ? "?" : "&";
+
+			var querystring = buildQueryString(data);
+
+			xhrOptions.url = xhrOptions.url + (querystring ? prefix + querystring : "")
+
+		}
+
+		else xhrOptions.data = serialize(data);
+
+		return xhrOptions
+
+	}
+
+	function parameterizeUrl(url, data) {
+
+		var tokens = url.match(/:[a-z]\w+/gi);
+
+		if (tokens && data) {
+
+			for (var i = 0; i < tokens.length; i++) {
+
+				var key = tokens[i].slice(1);
+
+				url = url.replace(tokens[i], data[key]);
+
+				delete data[key]
+
+			}
+
+		}
+
+		return url
+
+	}
+
+
+
+	m.request = function(xhrOptions) {
+
+		if (xhrOptions.background !== true) m.startComputation();
+
+		var deferred = new Deferred();
+
+		var isJSONP = xhrOptions.dataType && xhrOptions.dataType.toLowerCase() === "jsonp";
+
+		var serialize = xhrOptions.serialize = isJSONP ? identity : xhrOptions.serialize || JSON.stringify;
+
+		var deserialize = xhrOptions.deserialize = isJSONP ? identity : xhrOptions.deserialize || JSON.parse;
+
+		var extract = isJSONP ? function(jsonp) {return jsonp.responseText} : xhrOptions.extract || function(xhr) {
+
+			return xhr.responseText.length === 0 && deserialize === JSON.parse ? null : xhr.responseText
+
+		};
+
+		xhrOptions.method = (xhrOptions.method || 'GET').toUpperCase();
+
+		xhrOptions.url = parameterizeUrl(xhrOptions.url, xhrOptions.data);
+
+		xhrOptions = bindData(xhrOptions, xhrOptions.data, serialize);
+
+		xhrOptions.onload = xhrOptions.onerror = function(e) {
+
+			try {
+
+				e = e || event;
+
+				var unwrap = (e.type === "load" ? xhrOptions.unwrapSuccess : xhrOptions.unwrapError) || identity;
+
+				var response = unwrap(deserialize(extract(e.target, xhrOptions)), e.target);
+
+				if (e.type === "load") {
+
+					if (type.call(response) === ARRAY && xhrOptions.type) {
+
+						for (var i = 0; i < response.length; i++) response[i] = new xhrOptions.type(response[i])
+
+					}
+
+					else if (xhrOptions.type) response = new xhrOptions.type(response)
+
+				}
+
+				deferred[e.type === "load" ? "resolve" : "reject"](response)
+
+			}
+
+			catch (e) {
+
+				m.deferred.onerror(e);
+
+				deferred.reject(e)
+
+			}
+
+			if (xhrOptions.background !== true) m.endComputation()
+
+		};
+
+		ajax(xhrOptions);
+
+		deferred.promise = propify(deferred.promise, xhrOptions.initialValue);
+
+		return deferred.promise
+
+	};
+
+
+
+	//testing API
+
+	m.deps = function(mock) {
+
+		initialize(window = mock || window);
+
+		return window;
+
+	};
+
+	//for internal testing only, do not use `m.deps.factory`
+
+	m.deps.factory = app;
+
+
+
+	return m
+
+})(typeof window != "undefined" ? window : {});
+
+
+
+if (typeof module != "undefined" && module !== null && module.exports) module.exports = m;
+
+else if (typeof define === "function" && define.amd) define(function() {return m});
 
 /*!
  * jQuery JavaScript Library v2.1.1
@@ -10815,752 +11508,6 @@ return jQuery;
 }));
 
 /*!
- * jQuery Transit - CSS3 transitions and transformations
- * (c) 2011-2014 Rico Sta. Cruz
- * MIT Licensed.
- *
- * http://ricostacruz.com/jquery.transit
- * http://github.com/rstacruz/jquery.transit
- */
-
-/* jshint expr: true */
-
-;(function (root, factory) {
-
-  if (typeof define === 'function' && define.amd) {
-    define(['jquery'], factory);
-  } else if (typeof exports === 'object') {
-    module.exports = factory(require('jquery'));
-  } else {
-    factory(root.jQuery);
-  }
-
-}(this, function($) {
-
-  $.transit = {
-    version: "0.9.12",
-
-    // Map of $.css() keys to values for 'transitionProperty'.
-    // See https://developer.mozilla.org/en/CSS/CSS_transitions#Properties_that_can_be_animated
-    propertyMap: {
-      marginLeft    : 'margin',
-      marginRight   : 'margin',
-      marginBottom  : 'margin',
-      marginTop     : 'margin',
-      paddingLeft   : 'padding',
-      paddingRight  : 'padding',
-      paddingBottom : 'padding',
-      paddingTop    : 'padding'
-    },
-
-    // Will simply transition "instantly" if false
-    enabled: true,
-
-    // Set this to false if you don't want to use the transition end property.
-    useTransitionEnd: false
-  };
-
-  var div = document.createElement('div');
-  var support = {};
-
-  // Helper function to get the proper vendor property name.
-  // (`transition` => `WebkitTransition`)
-  function getVendorPropertyName(prop) {
-    // Handle unprefixed versions (FF16+, for example)
-    if (prop in div.style) return prop;
-
-    var prefixes = ['Moz', 'Webkit', 'O', 'ms'];
-    var prop_ = prop.charAt(0).toUpperCase() + prop.substr(1);
-
-    for (var i=0; i<prefixes.length; ++i) {
-      var vendorProp = prefixes[i] + prop_;
-      if (vendorProp in div.style) { return vendorProp; }
-    }
-  }
-
-  // Helper function to check if transform3D is supported.
-  // Should return true for Webkits and Firefox 10+.
-  function checkTransform3dSupport() {
-    div.style[support.transform] = '';
-    div.style[support.transform] = 'rotateY(90deg)';
-    return div.style[support.transform] !== '';
-  }
-
-  var isChrome = navigator.userAgent.toLowerCase().indexOf('chrome') > -1;
-
-  // Check for the browser's transitions support.
-  support.transition      = getVendorPropertyName('transition');
-  support.transitionDelay = getVendorPropertyName('transitionDelay');
-  support.transform       = getVendorPropertyName('transform');
-  support.transformOrigin = getVendorPropertyName('transformOrigin');
-  support.filter          = getVendorPropertyName('Filter');
-  support.transform3d     = checkTransform3dSupport();
-
-  var eventNames = {
-    'transition':       'transitionend',
-    'MozTransition':    'transitionend',
-    'OTransition':      'oTransitionEnd',
-    'WebkitTransition': 'webkitTransitionEnd',
-    'msTransition':     'MSTransitionEnd'
-  };
-
-  // Detect the 'transitionend' event needed.
-  var transitionEnd = support.transitionEnd = eventNames[support.transition] || null;
-
-  // Populate jQuery's `$.support` with the vendor prefixes we know.
-  // As per [jQuery's cssHooks documentation](http://api.jquery.com/jQuery.cssHooks/),
-  // we set $.support.transition to a string of the actual property name used.
-  for (var key in support) {
-    if (support.hasOwnProperty(key) && typeof $.support[key] === 'undefined') {
-      $.support[key] = support[key];
-    }
-  }
-
-  // Avoid memory leak in IE.
-  div = null;
-
-  // ## $.cssEase
-  // List of easing aliases that you can use with `$.fn.transition`.
-  $.cssEase = {
-    '_default':       'ease',
-    'in':             'ease-in',
-    'out':            'ease-out',
-    'in-out':         'ease-in-out',
-    'snap':           'cubic-bezier(0,1,.5,1)',
-    // Penner equations
-    'easeInCubic':    'cubic-bezier(.550,.055,.675,.190)',
-    'easeOutCubic':   'cubic-bezier(.215,.61,.355,1)',
-    'easeInOutCubic': 'cubic-bezier(.645,.045,.355,1)',
-    'easeInCirc':     'cubic-bezier(.6,.04,.98,.335)',
-    'easeOutCirc':    'cubic-bezier(.075,.82,.165,1)',
-    'easeInOutCirc':  'cubic-bezier(.785,.135,.15,.86)',
-    'easeInExpo':     'cubic-bezier(.95,.05,.795,.035)',
-    'easeOutExpo':    'cubic-bezier(.19,1,.22,1)',
-    'easeInOutExpo':  'cubic-bezier(1,0,0,1)',
-    'easeInQuad':     'cubic-bezier(.55,.085,.68,.53)',
-    'easeOutQuad':    'cubic-bezier(.25,.46,.45,.94)',
-    'easeInOutQuad':  'cubic-bezier(.455,.03,.515,.955)',
-    'easeInQuart':    'cubic-bezier(.895,.03,.685,.22)',
-    'easeOutQuart':   'cubic-bezier(.165,.84,.44,1)',
-    'easeInOutQuart': 'cubic-bezier(.77,0,.175,1)',
-    'easeInQuint':    'cubic-bezier(.755,.05,.855,.06)',
-    'easeOutQuint':   'cubic-bezier(.23,1,.32,1)',
-    'easeInOutQuint': 'cubic-bezier(.86,0,.07,1)',
-    'easeInSine':     'cubic-bezier(.47,0,.745,.715)',
-    'easeOutSine':    'cubic-bezier(.39,.575,.565,1)',
-    'easeInOutSine':  'cubic-bezier(.445,.05,.55,.95)',
-    'easeInBack':     'cubic-bezier(.6,-.28,.735,.045)',
-    'easeOutBack':    'cubic-bezier(.175, .885,.32,1.275)',
-    'easeInOutBack':  'cubic-bezier(.68,-.55,.265,1.55)'
-  };
-
-  // ## 'transform' CSS hook
-  // Allows you to use the `transform` property in CSS.
-  //
-  //     $("#hello").css({ transform: "rotate(90deg)" });
-  //
-  //     $("#hello").css('transform');
-  //     //=> { rotate: '90deg' }
-  //
-  $.cssHooks['transit:transform'] = {
-    // The getter returns a `Transform` object.
-    get: function(elem) {
-      return $(elem).data('transform') || new Transform();
-    },
-
-    // The setter accepts a `Transform` object or a string.
-    set: function(elem, v) {
-      var value = v;
-
-      if (!(value instanceof Transform)) {
-        value = new Transform(value);
-      }
-
-      // We've seen the 3D version of Scale() not work in Chrome when the
-      // element being scaled extends outside of the viewport.  Thus, we're
-      // forcing Chrome to not use the 3d transforms as well.  Not sure if
-      // translate is affectede, but not risking it.  Detection code from
-      // http://davidwalsh.name/detecting-google-chrome-javascript
-      if (support.transform === 'WebkitTransform' && !isChrome) {
-        elem.style[support.transform] = value.toString(true);
-      } else {
-        elem.style[support.transform] = value.toString();
-      }
-
-      $(elem).data('transform', value);
-    }
-  };
-
-  // Add a CSS hook for `.css({ transform: '...' })`.
-  // In jQuery 1.8+, this will intentionally override the default `transform`
-  // CSS hook so it'll play well with Transit. (see issue #62)
-  $.cssHooks.transform = {
-    set: $.cssHooks['transit:transform'].set
-  };
-
-  // ## 'filter' CSS hook
-  // Allows you to use the `filter` property in CSS.
-  //
-  //     $("#hello").css({ filter: 'blur(10px)' });
-  //
-  $.cssHooks.filter = {
-    get: function(elem) {
-      return elem.style[support.filter];
-    },
-    set: function(elem, value) {
-      elem.style[support.filter] = value;
-    }
-  };
-
-  // jQuery 1.8+ supports prefix-free transitions, so these polyfills will not
-  // be necessary.
-  if ($.fn.jquery < "1.8") {
-    // ## 'transformOrigin' CSS hook
-    // Allows the use for `transformOrigin` to define where scaling and rotation
-    // is pivoted.
-    //
-    //     $("#hello").css({ transformOrigin: '0 0' });
-    //
-    $.cssHooks.transformOrigin = {
-      get: function(elem) {
-        return elem.style[support.transformOrigin];
-      },
-      set: function(elem, value) {
-        elem.style[support.transformOrigin] = value;
-      }
-    };
-
-    // ## 'transition' CSS hook
-    // Allows you to use the `transition` property in CSS.
-    //
-    //     $("#hello").css({ transition: 'all 0 ease 0' });
-    //
-    $.cssHooks.transition = {
-      get: function(elem) {
-        return elem.style[support.transition];
-      },
-      set: function(elem, value) {
-        elem.style[support.transition] = value;
-      }
-    };
-  }
-
-  // ## Other CSS hooks
-  // Allows you to rotate, scale and translate.
-  registerCssHook('scale');
-  registerCssHook('scaleX');
-  registerCssHook('scaleY');
-  registerCssHook('translate');
-  registerCssHook('rotate');
-  registerCssHook('rotateX');
-  registerCssHook('rotateY');
-  registerCssHook('rotate3d');
-  registerCssHook('perspective');
-  registerCssHook('skewX');
-  registerCssHook('skewY');
-  registerCssHook('x', true);
-  registerCssHook('y', true);
-
-  // ## Transform class
-  // This is the main class of a transformation property that powers
-  // `$.fn.css({ transform: '...' })`.
-  //
-  // This is, in essence, a dictionary object with key/values as `-transform`
-  // properties.
-  //
-  //     var t = new Transform("rotate(90) scale(4)");
-  //
-  //     t.rotate             //=> "90deg"
-  //     t.scale              //=> "4,4"
-  //
-  // Setters are accounted for.
-  //
-  //     t.set('rotate', 4)
-  //     t.rotate             //=> "4deg"
-  //
-  // Convert it to a CSS string using the `toString()` and `toString(true)` (for WebKit)
-  // functions.
-  //
-  //     t.toString()         //=> "rotate(90deg) scale(4,4)"
-  //     t.toString(true)     //=> "rotate(90deg) scale3d(4,4,0)" (WebKit version)
-  //
-  function Transform(str) {
-    if (typeof str === 'string') { this.parse(str); }
-    return this;
-  }
-
-  Transform.prototype = {
-    // ### setFromString()
-    // Sets a property from a string.
-    //
-    //     t.setFromString('scale', '2,4');
-    //     // Same as set('scale', '2', '4');
-    //
-    setFromString: function(prop, val) {
-      var args =
-        (typeof val === 'string')  ? val.split(',') :
-        (val.constructor === Array) ? val :
-        [ val ];
-
-      args.unshift(prop);
-
-      Transform.prototype.set.apply(this, args);
-    },
-
-    // ### set()
-    // Sets a property.
-    //
-    //     t.set('scale', 2, 4);
-    //
-    set: function(prop) {
-      var args = Array.prototype.slice.apply(arguments, [1]);
-      if (this.setter[prop]) {
-        this.setter[prop].apply(this, args);
-      } else {
-        this[prop] = args.join(',');
-      }
-    },
-
-    get: function(prop) {
-      if (this.getter[prop]) {
-        return this.getter[prop].apply(this);
-      } else {
-        return this[prop] || 0;
-      }
-    },
-
-    setter: {
-      // ### rotate
-      //
-      //     .css({ rotate: 30 })
-      //     .css({ rotate: "30" })
-      //     .css({ rotate: "30deg" })
-      //     .css({ rotate: "30deg" })
-      //
-      rotate: function(theta) {
-        this.rotate = unit(theta, 'deg');
-      },
-
-      rotateX: function(theta) {
-        this.rotateX = unit(theta, 'deg');
-      },
-
-      rotateY: function(theta) {
-        this.rotateY = unit(theta, 'deg');
-      },
-
-      // ### scale
-      //
-      //     .css({ scale: 9 })      //=> "scale(9,9)"
-      //     .css({ scale: '3,2' })  //=> "scale(3,2)"
-      //
-      scale: function(x, y) {
-        if (y === undefined) { y = x; }
-        this.scale = x + "," + y;
-      },
-
-      // ### skewX + skewY
-      skewX: function(x) {
-        this.skewX = unit(x, 'deg');
-      },
-
-      skewY: function(y) {
-        this.skewY = unit(y, 'deg');
-      },
-
-      // ### perspectvie
-      perspective: function(dist) {
-        this.perspective = unit(dist, 'px');
-      },
-
-      // ### x / y
-      // Translations. Notice how this keeps the other value.
-      //
-      //     .css({ x: 4 })       //=> "translate(4px, 0)"
-      //     .css({ y: 10 })      //=> "translate(4px, 10px)"
-      //
-      x: function(x) {
-        this.set('translate', x, null);
-      },
-
-      y: function(y) {
-        this.set('translate', null, y);
-      },
-
-      // ### translate
-      // Notice how this keeps the other value.
-      //
-      //     .css({ translate: '2, 5' })    //=> "translate(2px, 5px)"
-      //
-      translate: function(x, y) {
-        if (this._translateX === undefined) { this._translateX = 0; }
-        if (this._translateY === undefined) { this._translateY = 0; }
-
-        if (x !== null && x !== undefined) { this._translateX = unit(x, 'px'); }
-        if (y !== null && y !== undefined) { this._translateY = unit(y, 'px'); }
-
-        this.translate = this._translateX + "," + this._translateY;
-      }
-    },
-
-    getter: {
-      x: function() {
-        return this._translateX || 0;
-      },
-
-      y: function() {
-        return this._translateY || 0;
-      },
-
-      scale: function() {
-        var s = (this.scale || "1,1").split(',');
-        if (s[0]) { s[0] = parseFloat(s[0]); }
-        if (s[1]) { s[1] = parseFloat(s[1]); }
-
-        // "2.5,2.5" => 2.5
-        // "2.5,1" => [2.5,1]
-        return (s[0] === s[1]) ? s[0] : s;
-      },
-
-      rotate3d: function() {
-        var s = (this.rotate3d || "0,0,0,0deg").split(',');
-        for (var i=0; i<=3; ++i) {
-          if (s[i]) { s[i] = parseFloat(s[i]); }
-        }
-        if (s[3]) { s[3] = unit(s[3], 'deg'); }
-
-        return s;
-      }
-    },
-
-    // ### parse()
-    // Parses from a string. Called on constructor.
-    parse: function(str) {
-      var self = this;
-      str.replace(/([a-zA-Z0-9]+)\((.*?)\)/g, function(x, prop, val) {
-        self.setFromString(prop, val);
-      });
-    },
-
-    // ### toString()
-    // Converts to a `transition` CSS property string. If `use3d` is given,
-    // it converts to a `-webkit-transition` CSS property string instead.
-    toString: function(use3d) {
-      var re = [];
-
-      for (var i in this) {
-        if (this.hasOwnProperty(i)) {
-          // Don't use 3D transformations if the browser can't support it.
-          if ((!support.transform3d) && (
-            (i === 'rotateX') ||
-            (i === 'rotateY') ||
-            (i === 'perspective') ||
-            (i === 'transformOrigin'))) { continue; }
-
-          if (i[0] !== '_') {
-            if (use3d && (i === 'scale')) {
-              re.push(i + "3d(" + this[i] + ",1)");
-            } else if (use3d && (i === 'translate')) {
-              re.push(i + "3d(" + this[i] + ",0)");
-            } else {
-              re.push(i + "(" + this[i] + ")");
-            }
-          }
-        }
-      }
-
-      return re.join(" ");
-    }
-  };
-
-  function callOrQueue(self, queue, fn) {
-    if (queue === true) {
-      self.queue(fn);
-    } else if (queue) {
-      self.queue(queue, fn);
-    } else {
-      self.each(function () {
-                fn.call(this);
-            });
-    }
-  }
-
-  // ### getProperties(dict)
-  // Returns properties (for `transition-property`) for dictionary `props`. The
-  // value of `props` is what you would expect in `$.css(...)`.
-  function getProperties(props) {
-    var re = [];
-
-    $.each(props, function(key) {
-      key = $.camelCase(key); // Convert "text-align" => "textAlign"
-      key = $.transit.propertyMap[key] || $.cssProps[key] || key;
-      key = uncamel(key); // Convert back to dasherized
-
-      // Get vendor specify propertie
-      if (support[key])
-        key = uncamel(support[key]);
-
-      if ($.inArray(key, re) === -1) { re.push(key); }
-    });
-
-    return re;
-  }
-
-  // ### getTransition()
-  // Returns the transition string to be used for the `transition` CSS property.
-  //
-  // Example:
-  //
-  //     getTransition({ opacity: 1, rotate: 30 }, 500, 'ease');
-  //     //=> 'opacity 500ms ease, -webkit-transform 500ms ease'
-  //
-  function getTransition(properties, duration, easing, delay) {
-    // Get the CSS properties needed.
-    var props = getProperties(properties);
-
-    // Account for aliases (`in` => `ease-in`).
-    if ($.cssEase[easing]) { easing = $.cssEase[easing]; }
-
-    // Build the duration/easing/delay attributes for it.
-    var attribs = '' + toMS(duration) + ' ' + easing;
-    if (parseInt(delay, 10) > 0) { attribs += ' ' + toMS(delay); }
-
-    // For more properties, add them this way:
-    // "margin 200ms ease, padding 200ms ease, ..."
-    var transitions = [];
-    $.each(props, function(i, name) {
-      transitions.push(name + ' ' + attribs);
-    });
-
-    return transitions.join(', ');
-  }
-
-  // ## $.fn.transition
-  // Works like $.fn.animate(), but uses CSS transitions.
-  //
-  //     $("...").transition({ opacity: 0.1, scale: 0.3 });
-  //
-  //     // Specific duration
-  //     $("...").transition({ opacity: 0.1, scale: 0.3 }, 500);
-  //
-  //     // With duration and easing
-  //     $("...").transition({ opacity: 0.1, scale: 0.3 }, 500, 'in');
-  //
-  //     // With callback
-  //     $("...").transition({ opacity: 0.1, scale: 0.3 }, function() { ... });
-  //
-  //     // With everything
-  //     $("...").transition({ opacity: 0.1, scale: 0.3 }, 500, 'in', function() { ... });
-  //
-  //     // Alternate syntax
-  //     $("...").transition({
-  //       opacity: 0.1,
-  //       duration: 200,
-  //       delay: 40,
-  //       easing: 'in',
-  //       complete: function() { /* ... */ }
-  //      });
-  //
-  $.fn.transition = $.fn.transit = function(properties, duration, easing, callback) {
-    var self  = this;
-    var delay = 0;
-    var queue = true;
-
-    var theseProperties = $.extend(true, {}, properties);
-
-    // Account for `.transition(properties, callback)`.
-    if (typeof duration === 'function') {
-      callback = duration;
-      duration = undefined;
-    }
-
-    // Account for `.transition(properties, options)`.
-    if (typeof duration === 'object') {
-      easing = duration.easing;
-      delay = duration.delay || 0;
-      queue = typeof duration.queue === "undefined" ? true : duration.queue;
-      callback = duration.complete;
-      duration = duration.duration;
-    }
-
-    // Account for `.transition(properties, duration, callback)`.
-    if (typeof easing === 'function') {
-      callback = easing;
-      easing = undefined;
-    }
-
-    // Alternate syntax.
-    if (typeof theseProperties.easing !== 'undefined') {
-      easing = theseProperties.easing;
-      delete theseProperties.easing;
-    }
-
-    if (typeof theseProperties.duration !== 'undefined') {
-      duration = theseProperties.duration;
-      delete theseProperties.duration;
-    }
-
-    if (typeof theseProperties.complete !== 'undefined') {
-      callback = theseProperties.complete;
-      delete theseProperties.complete;
-    }
-
-    if (typeof theseProperties.queue !== 'undefined') {
-      queue = theseProperties.queue;
-      delete theseProperties.queue;
-    }
-
-    if (typeof theseProperties.delay !== 'undefined') {
-      delay = theseProperties.delay;
-      delete theseProperties.delay;
-    }
-
-    // Set defaults. (`400` duration, `ease` easing)
-    if (typeof duration === 'undefined') { duration = $.fx.speeds._default; }
-    if (typeof easing === 'undefined')   { easing = $.cssEase._default; }
-
-    duration = toMS(duration);
-
-    // Build the `transition` property.
-    var transitionValue = getTransition(theseProperties, duration, easing, delay);
-
-    // Compute delay until callback.
-    // If this becomes 0, don't bother setting the transition property.
-    var work = $.transit.enabled && support.transition;
-    var i = work ? (parseInt(duration, 10) + parseInt(delay, 10)) : 0;
-
-    // If there's nothing to do...
-    if (i === 0) {
-      var fn = function(next) {
-        self.css(theseProperties);
-        if (callback) { callback.apply(self); }
-        if (next) { next(); }
-      };
-
-      callOrQueue(self, queue, fn);
-      return self;
-    }
-
-    // Save the old transitions of each element so we can restore it later.
-    var oldTransitions = {};
-
-    var run = function(nextCall) {
-      var bound = false;
-
-      // Prepare the callback.
-      var cb = function() {
-        if (bound) { self.unbind(transitionEnd, cb); }
-
-        if (i > 0) {
-          self.each(function() {
-            this.style[support.transition] = (oldTransitions[this] || null);
-          });
-        }
-
-        if (typeof callback === 'function') { callback.apply(self); }
-        if (typeof nextCall === 'function') { nextCall(); }
-      };
-
-      if ((i > 0) && (transitionEnd) && ($.transit.useTransitionEnd)) {
-        // Use the 'transitionend' event if it's available.
-        bound = true;
-        self.bind(transitionEnd, cb);
-      } else {
-        // Fallback to timers if the 'transitionend' event isn't supported.
-        window.setTimeout(cb, i);
-      }
-
-      // Apply transitions.
-      self.each(function() {
-        if (i > 0) {
-          this.style[support.transition] = transitionValue;
-        }
-        $(this).css(theseProperties);
-      });
-    };
-
-    // Defer running. This allows the browser to paint any pending CSS it hasn't
-    // painted yet before doing the transitions.
-    var deferredRun = function(next) {
-        this.offsetWidth; // force a repaint
-        run(next);
-    };
-
-    // Use jQuery's fx queue.
-    callOrQueue(self, queue, deferredRun);
-
-    // Chainability.
-    return this;
-  };
-
-  function registerCssHook(prop, isPixels) {
-    // For certain properties, the 'px' should not be implied.
-    if (!isPixels) { $.cssNumber[prop] = true; }
-
-    $.transit.propertyMap[prop] = support.transform;
-
-    $.cssHooks[prop] = {
-      get: function(elem) {
-        var t = $(elem).css('transit:transform');
-        return t.get(prop);
-      },
-
-      set: function(elem, value) {
-        var t = $(elem).css('transit:transform');
-        t.setFromString(prop, value);
-
-        $(elem).css({ 'transit:transform': t });
-      }
-    };
-
-  }
-
-  // ### uncamel(str)
-  // Converts a camelcase string to a dasherized string.
-  // (`marginLeft` => `margin-left`)
-  function uncamel(str) {
-    return str.replace(/([A-Z])/g, function(letter) { return '-' + letter.toLowerCase(); });
-  }
-
-  // ### unit(number, unit)
-  // Ensures that number `number` has a unit. If no unit is found, assume the
-  // default is `unit`.
-  //
-  //     unit(2, 'px')          //=> "2px"
-  //     unit("30deg", 'rad')   //=> "30deg"
-  //
-  function unit(i, units) {
-    if ((typeof i === "string") && (!i.match(/^[\-0-9\.]+$/))) {
-      return i;
-    } else {
-      return "" + i + units;
-    }
-  }
-
-  // ### toMS(duration)
-  // Converts given `duration` to a millisecond string.
-  //
-  // toMS('fast') => $.fx.speeds[i] => "200ms"
-  // toMS('normal') //=> $.fx.speeds._default => "400ms"
-  // toMS(10) //=> '10ms'
-  // toMS('100ms') //=> '100ms'
-  //
-  function toMS(duration) {
-    var i = duration;
-
-    // Allow string durations like 'fast' and 'slow', without overriding numeric values.
-    if (typeof i === 'string' && (!i.match(/^[\-0-9\.]+/))) { i = $.fx.speeds[i] || $.fx.speeds._default; }
-
-    return unit(i, 'ms');
-  }
-
-  // Export some functions for testable-ness.
-  $.transit.getTransitionValue = getTransition;
-
-  return $;
-}));
-
-/*!
  * Materialize v0.97.1 (http://materializecss.com)
  * Copyright 2014-2015 Materialize
  * MIT License (https://raw.githubusercontent.com/Dogfalo/materialize/master/LICENSE)
@@ -17780,2323 +17727,1989 @@ Picker.extend( 'pickadate', DatePicker )
 
 }( jQuery ));
 
-var m = (function app(window, undefined) {
-
-	var OBJECT = "[object Object]", ARRAY = "[object Array]", STRING = "[object String]", FUNCTION = "function";
-
-	var type = {}.toString;
-
-	var parser = /(?:(^|#|\.)([^#\.\[\]]+))|(\[.+?\])/g, attrParser = /\[(.+?)(?:=("|'|)(.*?)\2)?\]/;
-
-	var voidElements = /^(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|KEYGEN|LINK|META|PARAM|SOURCE|TRACK|WBR)$/;
-
-	var noop = function() {}
-
-
-
-	// caching commonly used variables
-
-	var $document, $location, $requestAnimationFrame, $cancelAnimationFrame;
-
-
-
-	// self invoking function needed because of the way mocks work
-
-	function initialize(window){
-
-		$document = window.document;
-
-		$location = window.location;
-
-		$cancelAnimationFrame = window.cancelAnimationFrame || window.clearTimeout;
-
-		$requestAnimationFrame = window.requestAnimationFrame || window.setTimeout;
-
-	}
-
-
-
-	initialize(window);
-
-
-
-
-
-	/**
-
-	 * @typedef {String} Tag
-
-	 * A string that looks like -> div.classname#id[param=one][param2=two]
-
-	 * Which describes a DOM node
-
-	 */
-
-
-
-	/**
-
-	 *
-
-	 * @param {Tag} The DOM node tag
-
-	 * @param {Object=[]} optional key-value pairs to be mapped to DOM attrs
-
-	 * @param {...mNode=[]} Zero or more Mithril child nodes. Can be an array, or splat (optional)
-
-	 *
-
-	 */
-
-	function m() {
-
-		var args = [].slice.call(arguments);
-
-		var hasAttrs = args[1] != null && type.call(args[1]) === OBJECT && !("tag" in args[1] || "view" in args[1]) && !("subtree" in args[1]);
-
-		var attrs = hasAttrs ? args[1] : {};
-
-		var classAttrName = "class" in attrs ? "class" : "className";
-
-		var cell = {tag: "div", attrs: {}};
-
-		var match, classes = [];
-
-		if (type.call(args[0]) != STRING) throw new Error("selector in m(selector, attrs, children) should be a string")
-
-		while (match = parser.exec(args[0])) {
-
-			if (match[1] === "" && match[2]) cell.tag = match[2];
-
-			else if (match[1] === "#") cell.attrs.id = match[2];
-
-			else if (match[1] === ".") classes.push(match[2]);
-
-			else if (match[3][0] === "[") {
-
-				var pair = attrParser.exec(match[3]);
-
-				cell.attrs[pair[1]] = pair[3] || (pair[2] ? "" :true)
-
-			}
-
-		}
-
-
-
-		var children = hasAttrs ? args.slice(2) : args.slice(1);
-
-		if (children.length === 1 && type.call(children[0]) === ARRAY) {
-
-			cell.children = children[0]
-
-		}
-
-		else {
-
-			cell.children = children
-
-		}
-
-
-
-		for (var attrName in attrs) {
-
-			if (attrs.hasOwnProperty(attrName)) {
-
-				if (attrName === classAttrName && attrs[attrName] != null && attrs[attrName] !== "") {
-
-					classes.push(attrs[attrName])
-
-					cell.attrs[attrName] = "" //create key in correct iteration order
-
-				}
-
-				else cell.attrs[attrName] = attrs[attrName]
-
-			}
-
-		}
-
-		if (classes.length > 0) cell.attrs[classAttrName] = classes.join(" ");
-
-
-
-		return cell
-
-	}
-
-	function build(parentElement, parentTag, parentCache, parentIndex, data, cached, shouldReattach, index, editable, namespace, configs) {
-
-		//`build` is a recursive function that manages creation/diffing/removal of DOM elements based on comparison between `data` and `cached`
-
-		//the diff algorithm can be summarized as this:
-
-		//1 - compare `data` and `cached`
-
-		//2 - if they are different, copy `data` to `cached` and update the DOM based on what the difference is
-
-		//3 - recursively apply this algorithm for every array and for the children of every virtual element
-
-
-
-		//the `cached` data structure is essentially the same as the previous redraw's `data` data structure, with a few additions:
-
-		//- `cached` always has a property called `nodes`, which is a list of DOM elements that correspond to the data represented by the respective virtual element
-
-		//- in order to support attaching `nodes` as a property of `cached`, `cached` is *always* a non-primitive object, i.e. if the data was a string, then cached is a String instance. If data was `null` or `undefined`, cached is `new String("")`
-
-		//- `cached also has a `configContext` property, which is the state storage object exposed by config(element, isInitialized, context)
-
-		//- when `cached` is an Object, it represents a virtual element; when it's an Array, it represents a list of elements; when it's a String, Number or Boolean, it represents a text node
-
-
-
-		//`parentElement` is a DOM element used for W3C DOM API calls
-
-		//`parentTag` is only used for handling a corner case for textarea values
-
-		//`parentCache` is used to remove nodes in some multi-node cases
-
-		//`parentIndex` and `index` are used to figure out the offset of nodes. They're artifacts from before arrays started being flattened and are likely refactorable
-
-		//`data` and `cached` are, respectively, the new and old nodes being diffed
-
-		//`shouldReattach` is a flag indicating whether a parent node was recreated (if so, and if this node is reused, then this node must reattach itself to the new parent)
-
-		//`editable` is a flag that indicates whether an ancestor is contenteditable
-
-		//`namespace` indicates the closest HTML namespace as it cascades down from an ancestor
-
-		//`configs` is a list of config functions to run after the topmost `build` call finishes running
-
-
-
-		//there's logic that relies on the assumption that null and undefined data are equivalent to empty strings
-
-		//- this prevents lifecycle surprises from procedural helpers that mix implicit and explicit return statements (e.g. function foo() {if (cond) return m("div")}
-
-		//- it simplifies diffing code
-
-		//data.toString() might throw or return null if data is the return value of Console.log in Firefox (behavior depends on version)
-
-		try {if (data == null || data.toString() == null) data = "";} catch (e) {data = ""}
-
-		if (data.subtree === "retain") return cached;
-
-		var cachedType = type.call(cached), dataType = type.call(data);
-
-		if (cached == null || cachedType !== dataType) {
-
-			if (cached != null) {
-
-				if (parentCache && parentCache.nodes) {
-
-					var offset = index - parentIndex;
-
-					var end = offset + (dataType === ARRAY ? data : cached.nodes).length;
-
-					clear(parentCache.nodes.slice(offset, end), parentCache.slice(offset, end))
-
-				}
-
-				else if (cached.nodes) clear(cached.nodes, cached)
-
-			}
-
-			cached = new data.constructor;
-
-			if (cached.tag) cached = {}; //if constructor creates a virtual dom element, use a blank object as the base cached node instead of copying the virtual el (#277)
-
-			cached.nodes = []
-
-		}
-
-
-
-		if (dataType === ARRAY) {
-
-			//recursively flatten array
-
-			for (var i = 0, len = data.length; i < len; i++) {
-
-				if (type.call(data[i]) === ARRAY) {
-
-					data = data.concat.apply([], data);
-
-					i-- //check current index again and flatten until there are no more nested arrays at that index
-
-					len = data.length
-
-				}
-
-			}
-
-
-
-			var nodes = [], intact = cached.length === data.length, subArrayCount = 0;
-
-
-
-			//keys algorithm: sort elements without recreating them if keys are present
-
-			//1) create a map of all existing keys, and mark all for deletion
-
-			//2) add new keys to map and mark them for addition
-
-			//3) if key exists in new list, change action from deletion to a move
-
-			//4) for each key, handle its corresponding action as marked in previous steps
-
-			var DELETION = 1, INSERTION = 2 , MOVE = 3;
-
-			var existing = {}, shouldMaintainIdentities = false;
-
-			for (var i = 0; i < cached.length; i++) {
-
-				if (cached[i] && cached[i].attrs && cached[i].attrs.key != null) {
-
-					shouldMaintainIdentities = true;
-
-					existing[cached[i].attrs.key] = {action: DELETION, index: i}
-
-				}
-
-			}
-
-
-
-			var guid = 0
-
-			for (var i = 0, len = data.length; i < len; i++) {
-
-				if (data[i] && data[i].attrs && data[i].attrs.key != null) {
-
-					for (var j = 0, len = data.length; j < len; j++) {
-
-						if (data[j] && data[j].attrs && data[j].attrs.key == null) data[j].attrs.key = "__mithril__" + guid++
-
-					}
-
-					break
-
-				}
-
-			}
-
-
-
-			if (shouldMaintainIdentities) {
-
-				var keysDiffer = false
-
-				if (data.length != cached.length) keysDiffer = true
-
-				else for (var i = 0, cachedCell, dataCell; cachedCell = cached[i], dataCell = data[i]; i++) {
-
-					if (cachedCell.attrs && dataCell.attrs && cachedCell.attrs.key != dataCell.attrs.key) {
-
-						keysDiffer = true
-
-						break
-
-					}
-
-				}
-
-
-
-				if (keysDiffer) {
-
-					for (var i = 0, len = data.length; i < len; i++) {
-
-						if (data[i] && data[i].attrs) {
-
-							if (data[i].attrs.key != null) {
-
-								var key = data[i].attrs.key;
-
-								if (!existing[key]) existing[key] = {action: INSERTION, index: i};
-
-								else existing[key] = {
-
-									action: MOVE,
-
-									index: i,
-
-									from: existing[key].index,
-
-									element: cached.nodes[existing[key].index] || $document.createElement("div")
-
-								}
-
-							}
-
-						}
-
-					}
-
-					var actions = []
-
-					for (var prop in existing) actions.push(existing[prop])
-
-					var changes = actions.sort(sortChanges);
-
-					var newCached = new Array(cached.length)
-
-					newCached.nodes = cached.nodes.slice()
-
-
-
-					for (var i = 0, change; change = changes[i]; i++) {
-
-						if (change.action === DELETION) {
-
-							clear(cached[change.index].nodes, cached[change.index]);
-
-							newCached.splice(change.index, 1)
-
-						}
-
-						if (change.action === INSERTION) {
-
-							var dummy = $document.createElement("div");
-
-							dummy.key = data[change.index].attrs.key;
-
-							parentElement.insertBefore(dummy, parentElement.childNodes[change.index] || null);
-
-							newCached.splice(change.index, 0, {attrs: {key: data[change.index].attrs.key}, nodes: [dummy]})
-
-							newCached.nodes[change.index] = dummy
-
-						}
-
-
-
-						if (change.action === MOVE) {
-
-							if (parentElement.childNodes[change.index] !== change.element && change.element !== null) {
-
-								parentElement.insertBefore(change.element, parentElement.childNodes[change.index] || null)
-
-							}
-
-							newCached[change.index] = cached[change.from]
-
-							newCached.nodes[change.index] = change.element
-
-						}
-
-					}
-
-					cached = newCached;
-
-				}
-
-			}
-
-			//end key algorithm
-
-
-
-			for (var i = 0, cacheCount = 0, len = data.length; i < len; i++) {
-
-				//diff each item in the array
-
-				var item = build(parentElement, parentTag, cached, index, data[i], cached[cacheCount], shouldReattach, index + subArrayCount || subArrayCount, editable, namespace, configs);
-
-				if (item === undefined) continue;
-
-				if (!item.nodes.intact) intact = false;
-
-				if (item.$trusted) {
-
-					//fix offset of next element if item was a trusted string w/ more than one html element
-
-					//the first clause in the regexp matches elements
-
-					//the second clause (after the pipe) matches text nodes
-
-					subArrayCount += (item.match(/<[^\/]|\>\s*[^<]/g) || [0]).length
-
-				}
-
-				else subArrayCount += type.call(item) === ARRAY ? item.length : 1;
-
-				cached[cacheCount++] = item
-
-			}
-
-			if (!intact) {
-
-				//diff the array itself
-
-
-
-				//update the list of DOM nodes by collecting the nodes from each item
-
-				for (var i = 0, len = data.length; i < len; i++) {
-
-					if (cached[i] != null) nodes.push.apply(nodes, cached[i].nodes)
-
-				}
-
-				//remove items from the end of the array if the new array is shorter than the old one
-
-				//if errors ever happen here, the issue is most likely a bug in the construction of the `cached` data structure somewhere earlier in the program
-
-				for (var i = 0, node; node = cached.nodes[i]; i++) {
-
-					if (node.parentNode != null && nodes.indexOf(node) < 0) clear([node], [cached[i]])
-
-				}
-
-				if (data.length < cached.length) cached.length = data.length;
-
-				cached.nodes = nodes
-
-			}
-
-		}
-
-		else if (data != null && dataType === OBJECT) {
-
-			var views = [], controllers = []
-
-			while (data.view) {
-
-				var view = data.view.$original || data.view
-
-				var controllerIndex = m.redraw.strategy() == "diff" && cached.views ? cached.views.indexOf(view) : -1
-
-				var controller = controllerIndex > -1 ? cached.controllers[controllerIndex] : new (data.controller || noop)
-
-				var key = data && data.attrs && data.attrs.key
-
-				data = pendingRequests == 0 || (cached && cached.controllers && cached.controllers.indexOf(controller) > -1) ? data.view(controller) : {tag: "placeholder"}
-
-				if (data.subtree === "retain") return cached;
-
-				if (key) {
-
-					if (!data.attrs) data.attrs = {}
-
-					data.attrs.key = key
-
-				}
-
-				if (controller.onunload) unloaders.push({controller: controller, handler: controller.onunload})
-
-				views.push(view)
-
-				controllers.push(controller)
-
-			}
-
-			if (!data.tag && controllers.length) throw new Error("Component template must return a virtual element, not an array, string, etc.")
-
-			if (!data.attrs) data.attrs = {};
-
-			if (!cached.attrs) cached.attrs = {};
-
-
-
-			var dataAttrKeys = Object.keys(data.attrs)
-
-			var hasKeys = dataAttrKeys.length > ("key" in data.attrs ? 1 : 0)
-
-			//if an element is different enough from the one in cache, recreate it
-
-			if (data.tag != cached.tag || dataAttrKeys.sort().join() != Object.keys(cached.attrs).sort().join() || data.attrs.id != cached.attrs.id || data.attrs.key != cached.attrs.key || (m.redraw.strategy() == "all" && (!cached.configContext || cached.configContext.retain !== true)) || (m.redraw.strategy() == "diff" && cached.configContext && cached.configContext.retain === false)) {
-
-				if (cached.nodes.length) clear(cached.nodes);
-
-				if (cached.configContext && typeof cached.configContext.onunload === FUNCTION) cached.configContext.onunload()
-
-				if (cached.controllers) {
-
-					for (var i = 0, controller; controller = cached.controllers[i]; i++) {
-
-						if (typeof controller.onunload === FUNCTION) controller.onunload({preventDefault: noop})
-
-					}
-
-				}
-
-			}
-
-			if (type.call(data.tag) != STRING) return;
-
-
-
-			var node, isNew = cached.nodes.length === 0;
-
-			if (data.attrs.xmlns) namespace = data.attrs.xmlns;
-
-			else if (data.tag === "svg") namespace = "http://www.w3.org/2000/svg";
-
-			else if (data.tag === "math") namespace = "http://www.w3.org/1998/Math/MathML";
-
-
-
-			if (isNew) {
-
-				if (data.attrs.is) node = namespace === undefined ? $document.createElement(data.tag, data.attrs.is) : $document.createElementNS(namespace, data.tag, data.attrs.is);
-
-				else node = namespace === undefined ? $document.createElement(data.tag) : $document.createElementNS(namespace, data.tag);
-
-				cached = {
-
-					tag: data.tag,
-
-					//set attributes first, then create children
-
-					attrs: hasKeys ? setAttributes(node, data.tag, data.attrs, {}, namespace) : data.attrs,
-
-					children: data.children != null && data.children.length > 0 ?
-
-						build(node, data.tag, undefined, undefined, data.children, cached.children, true, 0, data.attrs.contenteditable ? node : editable, namespace, configs) :
-
-						data.children,
-
-					nodes: [node]
-
-				};
-
-				if (controllers.length) {
-
-					cached.views = views
-
-					cached.controllers = controllers
-
-					for (var i = 0, controller; controller = controllers[i]; i++) {
-
-						if (controller.onunload && controller.onunload.$old) controller.onunload = controller.onunload.$old
-
-						if (pendingRequests && controller.onunload) {
-
-							var onunload = controller.onunload
-
-							controller.onunload = noop
-
-							controller.onunload.$old = onunload
-
-						}
-
-					}
-
-				}
-
-
-
-				if (cached.children && !cached.children.nodes) cached.children.nodes = [];
-
-				//edge case: setting value on <select> doesn't work before children exist, so set it again after children have been created
-
-				if (data.tag === "select" && "value" in data.attrs) setAttributes(node, data.tag, {value: data.attrs.value}, {}, namespace);
-
-				parentElement.insertBefore(node, parentElement.childNodes[index] || null)
-
-			}
-
-			else {
-
-				node = cached.nodes[0];
-
-				if (hasKeys) setAttributes(node, data.tag, data.attrs, cached.attrs, namespace);
-
-				cached.children = build(node, data.tag, undefined, undefined, data.children, cached.children, false, 0, data.attrs.contenteditable ? node : editable, namespace, configs);
-
-				cached.nodes.intact = true;
-
-				if (controllers.length) {
-
-					cached.views = views
-
-					cached.controllers = controllers
-
-				}
-
-				if (shouldReattach === true && node != null) parentElement.insertBefore(node, parentElement.childNodes[index] || null)
-
-			}
-
-			//schedule configs to be called. They are called after `build` finishes running
-
-			if (typeof data.attrs["config"] === FUNCTION) {
-
-				var context = cached.configContext = cached.configContext || {};
-
-
-
-				// bind
-
-				var callback = function(data, args) {
-
-					return function() {
-
-						return data.attrs["config"].apply(data, args)
-
-					}
-
-				};
-
-				configs.push(callback(data, [node, !isNew, context, cached]))
-
-			}
-
-		}
-
-		else if (typeof data != FUNCTION) {
-
-			//handle text nodes
-
-			var nodes;
-
-			if (cached.nodes.length === 0) {
-
-				if (data.$trusted) {
-
-					nodes = injectHTML(parentElement, index, data)
-
-				}
-
-				else {
-
-					nodes = [$document.createTextNode(data)];
-
-					if (!parentElement.nodeName.match(voidElements)) parentElement.insertBefore(nodes[0], parentElement.childNodes[index] || null)
-
-				}
-
-				cached = "string number boolean".indexOf(typeof data) > -1 ? new data.constructor(data) : data;
-
-				cached.nodes = nodes
-
-			}
-
-			else if (cached.valueOf() !== data.valueOf() || shouldReattach === true) {
-
-				nodes = cached.nodes;
-
-				if (!editable || editable !== $document.activeElement) {
-
-					if (data.$trusted) {
-
-						clear(nodes, cached);
-
-						nodes = injectHTML(parentElement, index, data)
-
-					}
-
-					else {
-
-						//corner case: replacing the nodeValue of a text node that is a child of a textarea/contenteditable doesn't work
-
-						//we need to update the value property of the parent textarea or the innerHTML of the contenteditable element instead
-
-						if (parentTag === "textarea") parentElement.value = data;
-
-						else if (editable) editable.innerHTML = data;
-
-						else {
-
-							if (nodes[0].nodeType === 1 || nodes.length > 1) { //was a trusted string
-
-								clear(cached.nodes, cached);
-
-								nodes = [$document.createTextNode(data)]
-
-							}
-
-							parentElement.insertBefore(nodes[0], parentElement.childNodes[index] || null);
-
-							nodes[0].nodeValue = data
-
-						}
-
-					}
-
-				}
-
-				cached = new data.constructor(data);
-
-				cached.nodes = nodes
-
-			}
-
-			else cached.nodes.intact = true
-
-		}
-
-
-
-		return cached
-
-	}
-
-	function sortChanges(a, b) {return a.action - b.action || a.index - b.index}
-
-	function setAttributes(node, tag, dataAttrs, cachedAttrs, namespace) {
-
-		for (var attrName in dataAttrs) {
-
-			var dataAttr = dataAttrs[attrName];
-
-			var cachedAttr = cachedAttrs[attrName];
-
-			if (!(attrName in cachedAttrs) || (cachedAttr !== dataAttr)) {
-
-				cachedAttrs[attrName] = dataAttr;
-
-				try {
-
-					//`config` isn't a real attributes, so ignore it
-
-					if (attrName === "config" || attrName == "key") continue;
-
-					//hook event handlers to the auto-redrawing system
-
-					else if (typeof dataAttr === FUNCTION && attrName.indexOf("on") === 0) {
-
-						node[attrName] = autoredraw(dataAttr, node)
-
-					}
-
-					//handle `style: {...}`
-
-					else if (attrName === "style" && dataAttr != null && type.call(dataAttr) === OBJECT) {
-
-						for (var rule in dataAttr) {
-
-							if (cachedAttr == null || cachedAttr[rule] !== dataAttr[rule]) node.style[rule] = dataAttr[rule]
-
-						}
-
-						for (var rule in cachedAttr) {
-
-							if (!(rule in dataAttr)) node.style[rule] = ""
-
-						}
-
-					}
-
-					//handle SVG
-
-					else if (namespace != null) {
-
-						if (attrName === "href") node.setAttributeNS("http://www.w3.org/1999/xlink", "href", dataAttr);
-
-						else if (attrName === "className") node.setAttribute("class", dataAttr);
-
-						else node.setAttribute(attrName, dataAttr)
-
-					}
-
-					//handle cases that are properties (but ignore cases where we should use setAttribute instead)
-
-					//- list and form are typically used as strings, but are DOM element references in js
-
-					//- when using CSS selectors (e.g. `m("[style='']")`), style is used as a string, but it's an object in js
-
-					else if (attrName in node && !(attrName === "list" || attrName === "style" || attrName === "form" || attrName === "type" || attrName === "width" || attrName === "height")) {
-
-						//#348 don't set the value if not needed otherwise cursor placement breaks in Chrome
-
-						if (tag !== "input" || node[attrName] !== dataAttr) node[attrName] = dataAttr
-
-					}
-
-					else node.setAttribute(attrName, dataAttr)
-
-				}
-
-				catch (e) {
-
-					//swallow IE's invalid argument errors to mimic HTML's fallback-to-doing-nothing-on-invalid-attributes behavior
-
-					if (e.message.indexOf("Invalid argument") < 0) throw e
-
-				}
-
-			}
-
-			//#348 dataAttr may not be a string, so use loose comparison (double equal) instead of strict (triple equal)
-
-			else if (attrName === "value" && tag === "input" && node.value != dataAttr) {
-
-				node.value = dataAttr
-
-			}
-
-		}
-
-		return cachedAttrs
-
-	}
-
-	function clear(nodes, cached) {
-
-		for (var i = nodes.length - 1; i > -1; i--) {
-
-			if (nodes[i] && nodes[i].parentNode) {
-
-				try {nodes[i].parentNode.removeChild(nodes[i])}
-
-				catch (e) {} //ignore if this fails due to order of events (see http://stackoverflow.com/questions/21926083/failed-to-execute-removechild-on-node)
-
-				cached = [].concat(cached);
-
-				if (cached[i]) unload(cached[i])
-
-			}
-
-		}
-
-		if (nodes.length != 0) nodes.length = 0
-
-	}
-
-	function unload(cached) {
-
-		if (cached.configContext && typeof cached.configContext.onunload === FUNCTION) {
-
-			cached.configContext.onunload();
-
-			cached.configContext.onunload = null
-
-		}
-
-		if (cached.controllers) {
-
-			for (var i = 0, controller; controller = cached.controllers[i]; i++) {
-
-				if (typeof controller.onunload === FUNCTION) controller.onunload({preventDefault: noop});
-
-			}
-
-		}
-
-		if (cached.children) {
-
-			if (type.call(cached.children) === ARRAY) {
-
-				for (var i = 0, child; child = cached.children[i]; i++) unload(child)
-
-			}
-
-			else if (cached.children.tag) unload(cached.children)
-
-		}
-
-	}
-
-	function injectHTML(parentElement, index, data) {
-
-		var nextSibling = parentElement.childNodes[index];
-
-		if (nextSibling) {
-
-			var isElement = nextSibling.nodeType != 1;
-
-			var placeholder = $document.createElement("span");
-
-			if (isElement) {
-
-				parentElement.insertBefore(placeholder, nextSibling || null);
-
-				placeholder.insertAdjacentHTML("beforebegin", data);
-
-				parentElement.removeChild(placeholder)
-
-			}
-
-			else nextSibling.insertAdjacentHTML("beforebegin", data)
-
-		}
-
-		else parentElement.insertAdjacentHTML("beforeend", data);
-
-		var nodes = [];
-
-		while (parentElement.childNodes[index] !== nextSibling) {
-
-			nodes.push(parentElement.childNodes[index]);
-
-			index++
-
-		}
-
-		return nodes
-
-	}
-
-	function autoredraw(callback, object) {
-
-		return function(e) {
-
-			e = e || event;
-
-			m.redraw.strategy("diff");
-
-			m.startComputation();
-
-			try {return callback.call(object, e)}
-
-			finally {
-
-				endFirstComputation()
-
-			}
-
-		}
-
-	}
-
-
-
-	var html;
-
-	var documentNode = {
-
-		appendChild: function(node) {
-
-			if (html === undefined) html = $document.createElement("html");
-
-			if ($document.documentElement && $document.documentElement !== node) {
-
-				$document.replaceChild(node, $document.documentElement)
-
-			}
-
-			else $document.appendChild(node);
-
-			this.childNodes = $document.childNodes
-
-		},
-
-		insertBefore: function(node) {
-
-			this.appendChild(node)
-
-		},
-
-		childNodes: []
-
-	};
-
-	var nodeCache = [], cellCache = {};
-
-	m.render = function(root, cell, forceRecreation) {
-
-		var configs = [];
-
-		if (!root) throw new Error("Ensure the DOM element being passed to m.route/m.mount/m.render is not undefined.");
-
-		var id = getCellCacheKey(root);
-
-		var isDocumentRoot = root === $document;
-
-		var node = isDocumentRoot || root === $document.documentElement ? documentNode : root;
-
-		if (isDocumentRoot && cell.tag != "html") cell = {tag: "html", attrs: {}, children: cell};
-
-		if (cellCache[id] === undefined) clear(node.childNodes);
-
-		if (forceRecreation === true) reset(root);
-
-		cellCache[id] = build(node, null, undefined, undefined, cell, cellCache[id], false, 0, null, undefined, configs);
-
-		for (var i = 0, len = configs.length; i < len; i++) configs[i]()
-
-	};
-
-	function getCellCacheKey(element) {
-
-		var index = nodeCache.indexOf(element);
-
-		return index < 0 ? nodeCache.push(element) - 1 : index
-
-	}
-
-
-
-	m.trust = function(value) {
-
-		value = new String(value);
-
-		value.$trusted = true;
-
-		return value
-
-	};
-
-
-
-	function gettersetter(store) {
-
-		var prop = function() {
-
-			if (arguments.length) store = arguments[0];
-
-			return store
-
-		};
-
-
-
-		prop.toJSON = function() {
-
-			return store
-
-		};
-
-
-
-		return prop
-
-	}
-
-
-
-	m.prop = function (store) {
-
-		//note: using non-strict equality check here because we're checking if store is null OR undefined
-
-		if (((store != null && type.call(store) === OBJECT) || typeof store === FUNCTION) && typeof store.then === FUNCTION) {
-
-			return propify(store)
-
-		}
-
-
-
-		return gettersetter(store)
-
-	};
-
-
-
-	var roots = [], components = [], controllers = [], lastRedrawId = null, lastRedrawCallTime = 0, computePreRedrawHook = null, computePostRedrawHook = null, prevented = false, topComponent, unloaders = [];
-
-	var FRAME_BUDGET = 16; //60 frames per second = 1 call per 16 ms
-
-	function parameterize(component, args) {
-
-		var controller = function() {
-
-			return (component.controller || noop).apply(this, args) || this
-
-		}
-
-		var view = function(ctrl) {
-
-			if (arguments.length > 1) args = args.concat([].slice.call(arguments, 1))
-
-			return component.view.apply(component, args ? [ctrl].concat(args) : [ctrl])
-
-		}
-
-		view.$original = component.view
-
-		var output = {controller: controller, view: view}
-
-		if (args[0] && args[0].key != null) output.attrs = {key: args[0].key}
-
-		return output
-
-	}
-
-	m.component = function(component) {
-
-		return parameterize(component, [].slice.call(arguments, 1))
-
-	}
-
-	m.mount = m.module = function(root, component) {
-
-		if (!root) throw new Error("Please ensure the DOM element exists before rendering a template into it.");
-
-		var index = roots.indexOf(root);
-
-		if (index < 0) index = roots.length;
-
-
-
-		var isPrevented = false;
-
-		var event = {preventDefault: function() {
-
-			isPrevented = true;
-
-			computePreRedrawHook = computePostRedrawHook = null;
-
-		}};
-
-		for (var i = 0, unloader; unloader = unloaders[i]; i++) {
-
-			unloader.handler.call(unloader.controller, event)
-
-			unloader.controller.onunload = null
-
-		}
-
-		if (isPrevented) {
-
-			for (var i = 0, unloader; unloader = unloaders[i]; i++) unloader.controller.onunload = unloader.handler
-
-		}
-
-		else unloaders = []
-
-
-
-		if (controllers[index] && typeof controllers[index].onunload === FUNCTION) {
-
-			controllers[index].onunload(event)
-
-		}
-
-
-
-		if (!isPrevented) {
-
-			m.redraw.strategy("all");
-
-			m.startComputation();
-
-			roots[index] = root;
-
-			if (arguments.length > 2) component = subcomponent(component, [].slice.call(arguments, 2))
-
-			var currentComponent = topComponent = component = component || {controller: function() {}};
-
-			var constructor = component.controller || noop
-
-			var controller = new constructor;
-
-			//controllers may call m.mount recursively (via m.route redirects, for example)
-
-			//this conditional ensures only the last recursive m.mount call is applied
-
-			if (currentComponent === topComponent) {
-
-				controllers[index] = controller;
-
-				components[index] = component
-
-			}
-
-			endFirstComputation();
-
-			return controllers[index]
-
-		}
-
-	};
-
-	var redrawing = false
-
-	m.redraw = function(force) {
-
-		if (redrawing) return
-
-		redrawing = true
-
-		//lastRedrawId is a positive number if a second redraw is requested before the next animation frame
-
-		//lastRedrawID is null if it's the first redraw and not an event handler
-
-		if (lastRedrawId && force !== true) {
-
-			//when setTimeout: only reschedule redraw if time between now and previous redraw is bigger than a frame, otherwise keep currently scheduled timeout
-
-			//when rAF: always reschedule redraw
-
-			if ($requestAnimationFrame === window.requestAnimationFrame || new Date - lastRedrawCallTime > FRAME_BUDGET) {
-
-				if (lastRedrawId > 0) $cancelAnimationFrame(lastRedrawId);
-
-				lastRedrawId = $requestAnimationFrame(redraw, FRAME_BUDGET)
-
-			}
-
-		}
-
-		else {
-
-			redraw();
-
-			lastRedrawId = $requestAnimationFrame(function() {lastRedrawId = null}, FRAME_BUDGET)
-
-		}
-
-		redrawing = false
-
-	};
-
-	m.redraw.strategy = m.prop();
-
-	function redraw() {
-
-		if (computePreRedrawHook) {
-
-			computePreRedrawHook()
-
-			computePreRedrawHook = null
-
-		}
-
-		for (var i = 0, root; root = roots[i]; i++) {
-
-			if (controllers[i]) {
-
-				var args = components[i].controller && components[i].controller.$$args ? [controllers[i]].concat(components[i].controller.$$args) : [controllers[i]]
-
-				m.render(root, components[i].view ? components[i].view(controllers[i], args) : "")
-
-			}
-
-		}
-
-		//after rendering within a routed context, we need to scroll back to the top, and fetch the document title for history.pushState
-
-		if (computePostRedrawHook) {
-
-			computePostRedrawHook();
-
-			computePostRedrawHook = null
-
-		}
-
-		lastRedrawId = null;
-
-		lastRedrawCallTime = new Date;
-
-		m.redraw.strategy("diff")
-
-	}
-
-
-
-	var pendingRequests = 0;
-
-	m.startComputation = function() {pendingRequests++};
-
-	m.endComputation = function() {
-
-		pendingRequests = Math.max(pendingRequests - 1, 0);
-
-		if (pendingRequests === 0) m.redraw()
-
-	};
-
-	var endFirstComputation = function() {
-
-		if (m.redraw.strategy() == "none") {
-
-			pendingRequests--
-
-			m.redraw.strategy("diff")
-
-		}
-
-		else m.endComputation();
-
-	}
-
-
-
-	m.withAttr = function(prop, withAttrCallback) {
-
-		return function(e) {
-
-			e = e || event;
-
-			var currentTarget = e.currentTarget || this;
-
-			withAttrCallback(prop in currentTarget ? currentTarget[prop] : currentTarget.getAttribute(prop))
-
-		}
-
-	};
-
-
-
-	//routing
-
-	var modes = {pathname: "", hash: "#", search: "?"};
-
-	var redirect = noop, routeParams, currentRoute, isDefaultRoute = false;
-
-	m.route = function() {
-
-		//m.route()
-
-		if (arguments.length === 0) return currentRoute;
-
-		//m.route(el, defaultRoute, routes)
-
-		else if (arguments.length === 3 && type.call(arguments[1]) === STRING) {
-
-			var root = arguments[0], defaultRoute = arguments[1], router = arguments[2];
-
-			redirect = function(source) {
-
-				var path = currentRoute = normalizeRoute(source);
-
-				if (!routeByValue(root, router, path)) {
-
-					if (isDefaultRoute) throw new Error("Ensure the default route matches one of the routes defined in m.route")
-
-					isDefaultRoute = true
-
-					m.route(defaultRoute, true)
-
-					isDefaultRoute = false
-
-				}
-
-			};
-
-			var listener = m.route.mode === "hash" ? "onhashchange" : "onpopstate";
-
-			window[listener] = function() {
-
-				var path = $location[m.route.mode]
-
-				if (m.route.mode === "pathname") path += $location.search
-
-				if (currentRoute != normalizeRoute(path)) {
-
-					redirect(path)
-
-				}
-
-			};
-
-			computePreRedrawHook = setScroll;
-
-			window[listener]()
-
-		}
-
-		//config: m.route
-
-		else if (arguments[0].addEventListener || arguments[0].attachEvent) {
-
-			var element = arguments[0];
-
-			var isInitialized = arguments[1];
-
-			var context = arguments[2];
-
-			var vdom = arguments[3];
-
-			element.href = (m.route.mode !== 'pathname' ? $location.pathname : '') + modes[m.route.mode] + vdom.attrs.href;
-
-			if (element.addEventListener) {
-
-				element.removeEventListener("click", routeUnobtrusive);
-
-				element.addEventListener("click", routeUnobtrusive)
-
-			}
-
-			else {
-
-				element.detachEvent("onclick", routeUnobtrusive);
-
-				element.attachEvent("onclick", routeUnobtrusive)
-
-			}
-
-		}
-
-		//m.route(route, params, shouldReplaceHistoryEntry)
-
-		else if (type.call(arguments[0]) === STRING) {
-
-			var oldRoute = currentRoute;
-
-			currentRoute = arguments[0];
-
-			var args = arguments[1] || {}
-
-			var queryIndex = currentRoute.indexOf("?")
-
-			var params = queryIndex > -1 ? parseQueryString(currentRoute.slice(queryIndex + 1)) : {}
-
-			for (var i in args) params[i] = args[i]
-
-			var querystring = buildQueryString(params)
-
-			var currentPath = queryIndex > -1 ? currentRoute.slice(0, queryIndex) : currentRoute
-
-			if (querystring) currentRoute = currentPath + (currentPath.indexOf("?") === -1 ? "?" : "&") + querystring;
-
-
-
-			var shouldReplaceHistoryEntry = (arguments.length === 3 ? arguments[2] : arguments[1]) === true || oldRoute === arguments[0];
-
-
-
-			if (window.history.pushState) {
-
-				computePreRedrawHook = setScroll
-
-				computePostRedrawHook = function() {
-
-					window.history[shouldReplaceHistoryEntry ? "replaceState" : "pushState"](null, $document.title, modes[m.route.mode] + currentRoute);
-
-				};
-
-				redirect(modes[m.route.mode] + currentRoute)
-
-			}
-
-			else {
-
-				$location[m.route.mode] = currentRoute
-
-				redirect(modes[m.route.mode] + currentRoute)
-
-			}
-
-		}
-
-	};
-
-	m.route.param = function(key) {
-
-		if (!routeParams) throw new Error("You must call m.route(element, defaultRoute, routes) before calling m.route.param()")
-
-		return routeParams[key]
-
-	};
-
-	m.route.mode = "search";
-
-	function normalizeRoute(route) {
-
-		return route.slice(modes[m.route.mode].length)
-
-	}
-
-	function routeByValue(root, router, path) {
-
-		routeParams = {};
-
-
-
-		var queryStart = path.indexOf("?");
-
-		if (queryStart !== -1) {
-
-			routeParams = parseQueryString(path.substr(queryStart + 1, path.length));
-
-			path = path.substr(0, queryStart)
-
-		}
-
-
-
-		// Get all routes and check if there's
-
-		// an exact match for the current path
-
-		var keys = Object.keys(router);
-
-		var index = keys.indexOf(path);
-
-		if(index !== -1){
-
-			m.mount(root, router[keys [index]]);
-
-			return true;
-
-		}
-
-
-
-		for (var route in router) {
-
-			if (route === path) {
-
-				m.mount(root, router[route]);
-
-				return true
-
-			}
-
-
-
-			var matcher = new RegExp("^" + route.replace(/:[^\/]+?\.{3}/g, "(.*?)").replace(/:[^\/]+/g, "([^\\/]+)") + "\/?$");
-
-
-
-			if (matcher.test(path)) {
-
-				path.replace(matcher, function() {
-
-					var keys = route.match(/:[^\/]+/g) || [];
-
-					var values = [].slice.call(arguments, 1, -2);
-
-					for (var i = 0, len = keys.length; i < len; i++) routeParams[keys[i].replace(/:|\./g, "")] = decodeURIComponent(values[i])
-
-					m.mount(root, router[route])
-
-				});
-
-				return true
-
-			}
-
-		}
-
-	}
-
-	function routeUnobtrusive(e) {
-
-		e = e || event;
-
-		if (e.ctrlKey || e.metaKey || e.which === 2) return;
-
-		if (e.preventDefault) e.preventDefault();
-
-		else e.returnValue = false;
-
-		var currentTarget = e.currentTarget || e.srcElement;
-
-		var args = m.route.mode === "pathname" && currentTarget.search ? parseQueryString(currentTarget.search.slice(1)) : {};
-
-		while (currentTarget && currentTarget.nodeName.toUpperCase() != "A") currentTarget = currentTarget.parentNode
-
-		m.route(currentTarget[m.route.mode].slice(modes[m.route.mode].length), args)
-
-	}
-
-	function setScroll() {
-
-		if (m.route.mode != "hash" && $location.hash) $location.hash = $location.hash;
-
-		else window.scrollTo(0, 0)
-
-	}
-
-	function buildQueryString(object, prefix) {
-
-		var duplicates = {}
-
-		var str = []
-
-		for (var prop in object) {
-
-			var key = prefix ? prefix + "[" + prop + "]" : prop
-
-			var value = object[prop]
-
-			var valueType = type.call(value)
-
-			var pair = (value === null) ? encodeURIComponent(key) :
-
-				valueType === OBJECT ? buildQueryString(value, key) :
-
-				valueType === ARRAY ? value.reduce(function(memo, item) {
-
-					if (!duplicates[key]) duplicates[key] = {}
-
-					if (!duplicates[key][item]) {
-
-						duplicates[key][item] = true
-
-						return memo.concat(encodeURIComponent(key) + "=" + encodeURIComponent(item))
-
-					}
-
-					return memo
-
-				}, []).join("&") :
-
-				encodeURIComponent(key) + "=" + encodeURIComponent(value)
-
-			if (value !== undefined) str.push(pair)
-
-		}
-
-		return str.join("&")
-
-	}
-
-	function parseQueryString(str) {
-
-		if (str.charAt(0) === "?") str = str.substring(1);
-
-
-
-		var pairs = str.split("&"), params = {};
-
-		for (var i = 0, len = pairs.length; i < len; i++) {
-
-			var pair = pairs[i].split("=");
-
-			var key = decodeURIComponent(pair[0])
-
-			var value = pair.length == 2 ? decodeURIComponent(pair[1]) : null
-
-			if (params[key] != null) {
-
-				if (type.call(params[key]) !== ARRAY) params[key] = [params[key]]
-
-				params[key].push(value)
-
-			}
-
-			else params[key] = value
-
-		}
-
-		return params
-
-	}
-
-	m.route.buildQueryString = buildQueryString
-
-	m.route.parseQueryString = parseQueryString
-
-
-
-	function reset(root) {
-
-		var cacheKey = getCellCacheKey(root);
-
-		clear(root.childNodes, cellCache[cacheKey]);
-
-		cellCache[cacheKey] = undefined
-
-	}
-
-
-
-	m.deferred = function () {
-
-		var deferred = new Deferred();
-
-		deferred.promise = propify(deferred.promise);
-
-		return deferred
-
-	};
-
-	function propify(promise, initialValue) {
-
-		var prop = m.prop(initialValue);
-
-		promise.then(prop);
-
-		prop.then = function(resolve, reject) {
-
-			return propify(promise.then(resolve, reject), initialValue)
-
-		};
-
-		return prop
-
-	}
-
-	//Promiz.mithril.js | Zolmeister | MIT
-
-	//a modified version of Promiz.js, which does not conform to Promises/A+ for two reasons:
-
-	//1) `then` callbacks are called synchronously (because setTimeout is too slow, and the setImmediate polyfill is too big
-
-	//2) throwing subclasses of Error cause the error to be bubbled up instead of triggering rejection (because the spec does not account for the important use case of default browser error handling, i.e. message w/ line number)
-
-	function Deferred(successCallback, failureCallback) {
-
-		var RESOLVING = 1, REJECTING = 2, RESOLVED = 3, REJECTED = 4;
-
-		var self = this, state = 0, promiseValue = 0, next = [];
-
-
-
-		self["promise"] = {};
-
-
-
-		self["resolve"] = function(value) {
-
-			if (!state) {
-
-				promiseValue = value;
-
-				state = RESOLVING;
-
-
-
-				fire()
-
-			}
-
-			return this
-
-		};
-
-
-
-		self["reject"] = function(value) {
-
-			if (!state) {
-
-				promiseValue = value;
-
-				state = REJECTING;
-
-
-
-				fire()
-
-			}
-
-			return this
-
-		};
-
-
-
-		self.promise["then"] = function(successCallback, failureCallback) {
-
-			var deferred = new Deferred(successCallback, failureCallback);
-
-			if (state === RESOLVED) {
-
-				deferred.resolve(promiseValue)
-
-			}
-
-			else if (state === REJECTED) {
-
-				deferred.reject(promiseValue)
-
-			}
-
-			else {
-
-				next.push(deferred)
-
-			}
-
-			return deferred.promise
-
-		};
-
-
-
-		function finish(type) {
-
-			state = type || REJECTED;
-
-			next.map(function(deferred) {
-
-				state === RESOLVED && deferred.resolve(promiseValue) || deferred.reject(promiseValue)
-
-			})
-
-		}
-
-
-
-		function thennable(then, successCallback, failureCallback, notThennableCallback) {
-
-			if (((promiseValue != null && type.call(promiseValue) === OBJECT) || typeof promiseValue === FUNCTION) && typeof then === FUNCTION) {
-
-				try {
-
-					// count protects against abuse calls from spec checker
-
-					var count = 0;
-
-					then.call(promiseValue, function(value) {
-
-						if (count++) return;
-
-						promiseValue = value;
-
-						successCallback()
-
-					}, function (value) {
-
-						if (count++) return;
-
-						promiseValue = value;
-
-						failureCallback()
-
-					})
-
-				}
-
-				catch (e) {
-
-					m.deferred.onerror(e);
-
-					promiseValue = e;
-
-					failureCallback()
-
-				}
-
-			} else {
-
-				notThennableCallback()
-
-			}
-
-		}
-
-
-
-		function fire() {
-
-			// check if it's a thenable
-
-			var then;
-
-			try {
-
-				then = promiseValue && promiseValue.then
-
-			}
-
-			catch (e) {
-
-				m.deferred.onerror(e);
-
-				promiseValue = e;
-
-				state = REJECTING;
-
-				return fire()
-
-			}
-
-			thennable(then, function() {
-
-				state = RESOLVING;
-
-				fire()
-
-			}, function() {
-
-				state = REJECTING;
-
-				fire()
-
-			}, function() {
-
-				try {
-
-					if (state === RESOLVING && typeof successCallback === FUNCTION) {
-
-						promiseValue = successCallback(promiseValue)
-
-					}
-
-					else if (state === REJECTING && typeof failureCallback === "function") {
-
-						promiseValue = failureCallback(promiseValue);
-
-						state = RESOLVING
-
-					}
-
-				}
-
-				catch (e) {
-
-					m.deferred.onerror(e);
-
-					promiseValue = e;
-
-					return finish()
-
-				}
-
-
-
-				if (promiseValue === self) {
-
-					promiseValue = TypeError();
-
-					finish()
-
-				}
-
-				else {
-
-					thennable(then, function () {
-
-						finish(RESOLVED)
-
-					}, finish, function () {
-
-						finish(state === RESOLVING && RESOLVED)
-
-					})
-
-				}
-
-			})
-
-		}
-
-	}
-
-	m.deferred.onerror = function(e) {
-
-		if (type.call(e) === "[object Error]" && !e.constructor.toString().match(/ Error/)) throw e
-
-	};
-
-
-
-	m.sync = function(args) {
-
-		var method = "resolve";
-
-		function synchronizer(pos, resolved) {
-
-			return function(value) {
-
-				results[pos] = value;
-
-				if (!resolved) method = "reject";
-
-				if (--outstanding === 0) {
-
-					deferred.promise(results);
-
-					deferred[method](results)
-
-				}
-
-				return value
-
-			}
-
-		}
-
-
-
-		var deferred = m.deferred();
-
-		var outstanding = args.length;
-
-		var results = new Array(outstanding);
-
-		if (args.length > 0) {
-
-			for (var i = 0; i < args.length; i++) {
-
-				args[i].then(synchronizer(i, true), synchronizer(i, false))
-
-			}
-
-		}
-
-		else deferred.resolve([]);
-
-
-
-		return deferred.promise
-
-	};
-
-	function identity(value) {return value}
-
-
-
-	function ajax(options) {
-
-		if (options.dataType && options.dataType.toLowerCase() === "jsonp") {
-
-			var callbackKey = "mithril_callback_" + new Date().getTime() + "_" + (Math.round(Math.random() * 1e16)).toString(36);
-
-			var script = $document.createElement("script");
-
-
-
-			window[callbackKey] = function(resp) {
-
-				script.parentNode.removeChild(script);
-
-				options.onload({
-
-					type: "load",
-
-					target: {
-
-						responseText: resp
-
-					}
-
-				});
-
-				window[callbackKey] = undefined
-
-			};
-
-
-
-			script.onerror = function(e) {
-
-				script.parentNode.removeChild(script);
-
-
-
-				options.onerror({
-
-					type: "error",
-
-					target: {
-
-						status: 500,
-
-						responseText: JSON.stringify({error: "Error making jsonp request"})
-
-					}
-
-				});
-
-				window[callbackKey] = undefined;
-
-
-
-				return false
-
-			};
-
-
-
-			script.onload = function(e) {
-
-				return false
-
-			};
-
-
-
-			script.src = options.url
-
-				+ (options.url.indexOf("?") > 0 ? "&" : "?")
-
-				+ (options.callbackKey ? options.callbackKey : "callback")
-
-				+ "=" + callbackKey
-
-				+ "&" + buildQueryString(options.data || {});
-
-			$document.body.appendChild(script)
-
-		}
-
-		else {
-
-			var xhr = new window.XMLHttpRequest;
-
-			xhr.open(options.method, options.url, true, options.user, options.password);
-
-			xhr.onreadystatechange = function() {
-
-				if (xhr.readyState === 4) {
-
-					if (xhr.status >= 200 && xhr.status < 300) options.onload({type: "load", target: xhr});
-
-					else options.onerror({type: "error", target: xhr})
-
-				}
-
-			};
-
-			if (options.serialize === JSON.stringify && options.data && options.method !== "GET") {
-
-				xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8")
-
-			}
-
-			if (options.deserialize === JSON.parse) {
-
-				xhr.setRequestHeader("Accept", "application/json, text/*");
-
-			}
-
-			if (typeof options.config === FUNCTION) {
-
-				var maybeXhr = options.config(xhr, options);
-
-				if (maybeXhr != null) xhr = maybeXhr
-
-			}
-
-
-
-			var data = options.method === "GET" || !options.data ? "" : options.data
-
-			if (data && (type.call(data) != STRING && data.constructor != window.FormData)) {
-
-				throw "Request data should be either be a string or FormData. Check the `serialize` option in `m.request`";
-
-			}
-
-			xhr.send(data);
-
-			return xhr
-
-		}
-
-	}
-
-	function bindData(xhrOptions, data, serialize) {
-
-		if (xhrOptions.method === "GET" && xhrOptions.dataType != "jsonp") {
-
-			var prefix = xhrOptions.url.indexOf("?") < 0 ? "?" : "&";
-
-			var querystring = buildQueryString(data);
-
-			xhrOptions.url = xhrOptions.url + (querystring ? prefix + querystring : "")
-
-		}
-
-		else xhrOptions.data = serialize(data);
-
-		return xhrOptions
-
-	}
-
-	function parameterizeUrl(url, data) {
-
-		var tokens = url.match(/:[a-z]\w+/gi);
-
-		if (tokens && data) {
-
-			for (var i = 0; i < tokens.length; i++) {
-
-				var key = tokens[i].slice(1);
-
-				url = url.replace(tokens[i], data[key]);
-
-				delete data[key]
-
-			}
-
-		}
-
-		return url
-
-	}
-
-
-
-	m.request = function(xhrOptions) {
-
-		if (xhrOptions.background !== true) m.startComputation();
-
-		var deferred = new Deferred();
-
-		var isJSONP = xhrOptions.dataType && xhrOptions.dataType.toLowerCase() === "jsonp";
-
-		var serialize = xhrOptions.serialize = isJSONP ? identity : xhrOptions.serialize || JSON.stringify;
-
-		var deserialize = xhrOptions.deserialize = isJSONP ? identity : xhrOptions.deserialize || JSON.parse;
-
-		var extract = isJSONP ? function(jsonp) {return jsonp.responseText} : xhrOptions.extract || function(xhr) {
-
-			return xhr.responseText.length === 0 && deserialize === JSON.parse ? null : xhr.responseText
-
-		};
-
-		xhrOptions.method = (xhrOptions.method || 'GET').toUpperCase();
-
-		xhrOptions.url = parameterizeUrl(xhrOptions.url, xhrOptions.data);
-
-		xhrOptions = bindData(xhrOptions, xhrOptions.data, serialize);
-
-		xhrOptions.onload = xhrOptions.onerror = function(e) {
-
-			try {
-
-				e = e || event;
-
-				var unwrap = (e.type === "load" ? xhrOptions.unwrapSuccess : xhrOptions.unwrapError) || identity;
-
-				var response = unwrap(deserialize(extract(e.target, xhrOptions)), e.target);
-
-				if (e.type === "load") {
-
-					if (type.call(response) === ARRAY && xhrOptions.type) {
-
-						for (var i = 0; i < response.length; i++) response[i] = new xhrOptions.type(response[i])
-
-					}
-
-					else if (xhrOptions.type) response = new xhrOptions.type(response)
-
-				}
-
-				deferred[e.type === "load" ? "resolve" : "reject"](response)
-
-			}
-
-			catch (e) {
-
-				m.deferred.onerror(e);
-
-				deferred.reject(e)
-
-			}
-
-			if (xhrOptions.background !== true) m.endComputation()
-
-		};
-
-		ajax(xhrOptions);
-
-		deferred.promise = propify(deferred.promise, xhrOptions.initialValue);
-
-		return deferred.promise
-
-	};
-
-
-
-	//testing API
-
-	m.deps = function(mock) {
-
-		initialize(window = mock || window);
-
-		return window;
-
-	};
-
-	//for internal testing only, do not use `m.deps.factory`
-
-	m.deps.factory = app;
-
-
-
-	return m
-
-})(typeof window != "undefined" ? window : {});
-
-
-
-if (typeof module != "undefined" && module !== null && module.exports) module.exports = m;
-
-else if (typeof define === "function" && define.amd) define(function() {return m});
+/*!
+ * jQuery Transit - CSS3 transitions and transformations
+ * (c) 2011-2014 Rico Sta. Cruz
+ * MIT Licensed.
+ *
+ * http://ricostacruz.com/jquery.transit
+ * http://github.com/rstacruz/jquery.transit
+ */
+
+/* jshint expr: true */
+
+;(function (root, factory) {
+
+  if (typeof define === 'function' && define.amd) {
+    define(['jquery'], factory);
+  } else if (typeof exports === 'object') {
+    module.exports = factory(require('jquery'));
+  } else {
+    factory(root.jQuery);
+  }
+
+}(this, function($) {
+
+  $.transit = {
+    version: "0.9.12",
+
+    // Map of $.css() keys to values for 'transitionProperty'.
+    // See https://developer.mozilla.org/en/CSS/CSS_transitions#Properties_that_can_be_animated
+    propertyMap: {
+      marginLeft    : 'margin',
+      marginRight   : 'margin',
+      marginBottom  : 'margin',
+      marginTop     : 'margin',
+      paddingLeft   : 'padding',
+      paddingRight  : 'padding',
+      paddingBottom : 'padding',
+      paddingTop    : 'padding'
+    },
+
+    // Will simply transition "instantly" if false
+    enabled: true,
+
+    // Set this to false if you don't want to use the transition end property.
+    useTransitionEnd: false
+  };
+
+  var div = document.createElement('div');
+  var support = {};
+
+  // Helper function to get the proper vendor property name.
+  // (`transition` => `WebkitTransition`)
+  function getVendorPropertyName(prop) {
+    // Handle unprefixed versions (FF16+, for example)
+    if (prop in div.style) return prop;
+
+    var prefixes = ['Moz', 'Webkit', 'O', 'ms'];
+    var prop_ = prop.charAt(0).toUpperCase() + prop.substr(1);
+
+    for (var i=0; i<prefixes.length; ++i) {
+      var vendorProp = prefixes[i] + prop_;
+      if (vendorProp in div.style) { return vendorProp; }
+    }
+  }
+
+  // Helper function to check if transform3D is supported.
+  // Should return true for Webkits and Firefox 10+.
+  function checkTransform3dSupport() {
+    div.style[support.transform] = '';
+    div.style[support.transform] = 'rotateY(90deg)';
+    return div.style[support.transform] !== '';
+  }
+
+  var isChrome = navigator.userAgent.toLowerCase().indexOf('chrome') > -1;
+
+  // Check for the browser's transitions support.
+  support.transition      = getVendorPropertyName('transition');
+  support.transitionDelay = getVendorPropertyName('transitionDelay');
+  support.transform       = getVendorPropertyName('transform');
+  support.transformOrigin = getVendorPropertyName('transformOrigin');
+  support.filter          = getVendorPropertyName('Filter');
+  support.transform3d     = checkTransform3dSupport();
+
+  var eventNames = {
+    'transition':       'transitionend',
+    'MozTransition':    'transitionend',
+    'OTransition':      'oTransitionEnd',
+    'WebkitTransition': 'webkitTransitionEnd',
+    'msTransition':     'MSTransitionEnd'
+  };
+
+  // Detect the 'transitionend' event needed.
+  var transitionEnd = support.transitionEnd = eventNames[support.transition] || null;
+
+  // Populate jQuery's `$.support` with the vendor prefixes we know.
+  // As per [jQuery's cssHooks documentation](http://api.jquery.com/jQuery.cssHooks/),
+  // we set $.support.transition to a string of the actual property name used.
+  for (var key in support) {
+    if (support.hasOwnProperty(key) && typeof $.support[key] === 'undefined') {
+      $.support[key] = support[key];
+    }
+  }
+
+  // Avoid memory leak in IE.
+  div = null;
+
+  // ## $.cssEase
+  // List of easing aliases that you can use with `$.fn.transition`.
+  $.cssEase = {
+    '_default':       'ease',
+    'in':             'ease-in',
+    'out':            'ease-out',
+    'in-out':         'ease-in-out',
+    'snap':           'cubic-bezier(0,1,.5,1)',
+    // Penner equations
+    'easeInCubic':    'cubic-bezier(.550,.055,.675,.190)',
+    'easeOutCubic':   'cubic-bezier(.215,.61,.355,1)',
+    'easeInOutCubic': 'cubic-bezier(.645,.045,.355,1)',
+    'easeInCirc':     'cubic-bezier(.6,.04,.98,.335)',
+    'easeOutCirc':    'cubic-bezier(.075,.82,.165,1)',
+    'easeInOutCirc':  'cubic-bezier(.785,.135,.15,.86)',
+    'easeInExpo':     'cubic-bezier(.95,.05,.795,.035)',
+    'easeOutExpo':    'cubic-bezier(.19,1,.22,1)',
+    'easeInOutExpo':  'cubic-bezier(1,0,0,1)',
+    'easeInQuad':     'cubic-bezier(.55,.085,.68,.53)',
+    'easeOutQuad':    'cubic-bezier(.25,.46,.45,.94)',
+    'easeInOutQuad':  'cubic-bezier(.455,.03,.515,.955)',
+    'easeInQuart':    'cubic-bezier(.895,.03,.685,.22)',
+    'easeOutQuart':   'cubic-bezier(.165,.84,.44,1)',
+    'easeInOutQuart': 'cubic-bezier(.77,0,.175,1)',
+    'easeInQuint':    'cubic-bezier(.755,.05,.855,.06)',
+    'easeOutQuint':   'cubic-bezier(.23,1,.32,1)',
+    'easeInOutQuint': 'cubic-bezier(.86,0,.07,1)',
+    'easeInSine':     'cubic-bezier(.47,0,.745,.715)',
+    'easeOutSine':    'cubic-bezier(.39,.575,.565,1)',
+    'easeInOutSine':  'cubic-bezier(.445,.05,.55,.95)',
+    'easeInBack':     'cubic-bezier(.6,-.28,.735,.045)',
+    'easeOutBack':    'cubic-bezier(.175, .885,.32,1.275)',
+    'easeInOutBack':  'cubic-bezier(.68,-.55,.265,1.55)'
+  };
+
+  // ## 'transform' CSS hook
+  // Allows you to use the `transform` property in CSS.
+  //
+  //     $("#hello").css({ transform: "rotate(90deg)" });
+  //
+  //     $("#hello").css('transform');
+  //     //=> { rotate: '90deg' }
+  //
+  $.cssHooks['transit:transform'] = {
+    // The getter returns a `Transform` object.
+    get: function(elem) {
+      return $(elem).data('transform') || new Transform();
+    },
+
+    // The setter accepts a `Transform` object or a string.
+    set: function(elem, v) {
+      var value = v;
+
+      if (!(value instanceof Transform)) {
+        value = new Transform(value);
+      }
+
+      // We've seen the 3D version of Scale() not work in Chrome when the
+      // element being scaled extends outside of the viewport.  Thus, we're
+      // forcing Chrome to not use the 3d transforms as well.  Not sure if
+      // translate is affectede, but not risking it.  Detection code from
+      // http://davidwalsh.name/detecting-google-chrome-javascript
+      if (support.transform === 'WebkitTransform' && !isChrome) {
+        elem.style[support.transform] = value.toString(true);
+      } else {
+        elem.style[support.transform] = value.toString();
+      }
+
+      $(elem).data('transform', value);
+    }
+  };
+
+  // Add a CSS hook for `.css({ transform: '...' })`.
+  // In jQuery 1.8+, this will intentionally override the default `transform`
+  // CSS hook so it'll play well with Transit. (see issue #62)
+  $.cssHooks.transform = {
+    set: $.cssHooks['transit:transform'].set
+  };
+
+  // ## 'filter' CSS hook
+  // Allows you to use the `filter` property in CSS.
+  //
+  //     $("#hello").css({ filter: 'blur(10px)' });
+  //
+  $.cssHooks.filter = {
+    get: function(elem) {
+      return elem.style[support.filter];
+    },
+    set: function(elem, value) {
+      elem.style[support.filter] = value;
+    }
+  };
+
+  // jQuery 1.8+ supports prefix-free transitions, so these polyfills will not
+  // be necessary.
+  if ($.fn.jquery < "1.8") {
+    // ## 'transformOrigin' CSS hook
+    // Allows the use for `transformOrigin` to define where scaling and rotation
+    // is pivoted.
+    //
+    //     $("#hello").css({ transformOrigin: '0 0' });
+    //
+    $.cssHooks.transformOrigin = {
+      get: function(elem) {
+        return elem.style[support.transformOrigin];
+      },
+      set: function(elem, value) {
+        elem.style[support.transformOrigin] = value;
+      }
+    };
+
+    // ## 'transition' CSS hook
+    // Allows you to use the `transition` property in CSS.
+    //
+    //     $("#hello").css({ transition: 'all 0 ease 0' });
+    //
+    $.cssHooks.transition = {
+      get: function(elem) {
+        return elem.style[support.transition];
+      },
+      set: function(elem, value) {
+        elem.style[support.transition] = value;
+      }
+    };
+  }
+
+  // ## Other CSS hooks
+  // Allows you to rotate, scale and translate.
+  registerCssHook('scale');
+  registerCssHook('scaleX');
+  registerCssHook('scaleY');
+  registerCssHook('translate');
+  registerCssHook('rotate');
+  registerCssHook('rotateX');
+  registerCssHook('rotateY');
+  registerCssHook('rotate3d');
+  registerCssHook('perspective');
+  registerCssHook('skewX');
+  registerCssHook('skewY');
+  registerCssHook('x', true);
+  registerCssHook('y', true);
+
+  // ## Transform class
+  // This is the main class of a transformation property that powers
+  // `$.fn.css({ transform: '...' })`.
+  //
+  // This is, in essence, a dictionary object with key/values as `-transform`
+  // properties.
+  //
+  //     var t = new Transform("rotate(90) scale(4)");
+  //
+  //     t.rotate             //=> "90deg"
+  //     t.scale              //=> "4,4"
+  //
+  // Setters are accounted for.
+  //
+  //     t.set('rotate', 4)
+  //     t.rotate             //=> "4deg"
+  //
+  // Convert it to a CSS string using the `toString()` and `toString(true)` (for WebKit)
+  // functions.
+  //
+  //     t.toString()         //=> "rotate(90deg) scale(4,4)"
+  //     t.toString(true)     //=> "rotate(90deg) scale3d(4,4,0)" (WebKit version)
+  //
+  function Transform(str) {
+    if (typeof str === 'string') { this.parse(str); }
+    return this;
+  }
+
+  Transform.prototype = {
+    // ### setFromString()
+    // Sets a property from a string.
+    //
+    //     t.setFromString('scale', '2,4');
+    //     // Same as set('scale', '2', '4');
+    //
+    setFromString: function(prop, val) {
+      var args =
+        (typeof val === 'string')  ? val.split(',') :
+        (val.constructor === Array) ? val :
+        [ val ];
+
+      args.unshift(prop);
+
+      Transform.prototype.set.apply(this, args);
+    },
+
+    // ### set()
+    // Sets a property.
+    //
+    //     t.set('scale', 2, 4);
+    //
+    set: function(prop) {
+      var args = Array.prototype.slice.apply(arguments, [1]);
+      if (this.setter[prop]) {
+        this.setter[prop].apply(this, args);
+      } else {
+        this[prop] = args.join(',');
+      }
+    },
+
+    get: function(prop) {
+      if (this.getter[prop]) {
+        return this.getter[prop].apply(this);
+      } else {
+        return this[prop] || 0;
+      }
+    },
+
+    setter: {
+      // ### rotate
+      //
+      //     .css({ rotate: 30 })
+      //     .css({ rotate: "30" })
+      //     .css({ rotate: "30deg" })
+      //     .css({ rotate: "30deg" })
+      //
+      rotate: function(theta) {
+        this.rotate = unit(theta, 'deg');
+      },
+
+      rotateX: function(theta) {
+        this.rotateX = unit(theta, 'deg');
+      },
+
+      rotateY: function(theta) {
+        this.rotateY = unit(theta, 'deg');
+      },
+
+      // ### scale
+      //
+      //     .css({ scale: 9 })      //=> "scale(9,9)"
+      //     .css({ scale: '3,2' })  //=> "scale(3,2)"
+      //
+      scale: function(x, y) {
+        if (y === undefined) { y = x; }
+        this.scale = x + "," + y;
+      },
+
+      // ### skewX + skewY
+      skewX: function(x) {
+        this.skewX = unit(x, 'deg');
+      },
+
+      skewY: function(y) {
+        this.skewY = unit(y, 'deg');
+      },
+
+      // ### perspectvie
+      perspective: function(dist) {
+        this.perspective = unit(dist, 'px');
+      },
+
+      // ### x / y
+      // Translations. Notice how this keeps the other value.
+      //
+      //     .css({ x: 4 })       //=> "translate(4px, 0)"
+      //     .css({ y: 10 })      //=> "translate(4px, 10px)"
+      //
+      x: function(x) {
+        this.set('translate', x, null);
+      },
+
+      y: function(y) {
+        this.set('translate', null, y);
+      },
+
+      // ### translate
+      // Notice how this keeps the other value.
+      //
+      //     .css({ translate: '2, 5' })    //=> "translate(2px, 5px)"
+      //
+      translate: function(x, y) {
+        if (this._translateX === undefined) { this._translateX = 0; }
+        if (this._translateY === undefined) { this._translateY = 0; }
+
+        if (x !== null && x !== undefined) { this._translateX = unit(x, 'px'); }
+        if (y !== null && y !== undefined) { this._translateY = unit(y, 'px'); }
+
+        this.translate = this._translateX + "," + this._translateY;
+      }
+    },
+
+    getter: {
+      x: function() {
+        return this._translateX || 0;
+      },
+
+      y: function() {
+        return this._translateY || 0;
+      },
+
+      scale: function() {
+        var s = (this.scale || "1,1").split(',');
+        if (s[0]) { s[0] = parseFloat(s[0]); }
+        if (s[1]) { s[1] = parseFloat(s[1]); }
+
+        // "2.5,2.5" => 2.5
+        // "2.5,1" => [2.5,1]
+        return (s[0] === s[1]) ? s[0] : s;
+      },
+
+      rotate3d: function() {
+        var s = (this.rotate3d || "0,0,0,0deg").split(',');
+        for (var i=0; i<=3; ++i) {
+          if (s[i]) { s[i] = parseFloat(s[i]); }
+        }
+        if (s[3]) { s[3] = unit(s[3], 'deg'); }
+
+        return s;
+      }
+    },
+
+    // ### parse()
+    // Parses from a string. Called on constructor.
+    parse: function(str) {
+      var self = this;
+      str.replace(/([a-zA-Z0-9]+)\((.*?)\)/g, function(x, prop, val) {
+        self.setFromString(prop, val);
+      });
+    },
+
+    // ### toString()
+    // Converts to a `transition` CSS property string. If `use3d` is given,
+    // it converts to a `-webkit-transition` CSS property string instead.
+    toString: function(use3d) {
+      var re = [];
+
+      for (var i in this) {
+        if (this.hasOwnProperty(i)) {
+          // Don't use 3D transformations if the browser can't support it.
+          if ((!support.transform3d) && (
+            (i === 'rotateX') ||
+            (i === 'rotateY') ||
+            (i === 'perspective') ||
+            (i === 'transformOrigin'))) { continue; }
+
+          if (i[0] !== '_') {
+            if (use3d && (i === 'scale')) {
+              re.push(i + "3d(" + this[i] + ",1)");
+            } else if (use3d && (i === 'translate')) {
+              re.push(i + "3d(" + this[i] + ",0)");
+            } else {
+              re.push(i + "(" + this[i] + ")");
+            }
+          }
+        }
+      }
+
+      return re.join(" ");
+    }
+  };
+
+  function callOrQueue(self, queue, fn) {
+    if (queue === true) {
+      self.queue(fn);
+    } else if (queue) {
+      self.queue(queue, fn);
+    } else {
+      self.each(function () {
+                fn.call(this);
+            });
+    }
+  }
+
+  // ### getProperties(dict)
+  // Returns properties (for `transition-property`) for dictionary `props`. The
+  // value of `props` is what you would expect in `$.css(...)`.
+  function getProperties(props) {
+    var re = [];
+
+    $.each(props, function(key) {
+      key = $.camelCase(key); // Convert "text-align" => "textAlign"
+      key = $.transit.propertyMap[key] || $.cssProps[key] || key;
+      key = uncamel(key); // Convert back to dasherized
+
+      // Get vendor specify propertie
+      if (support[key])
+        key = uncamel(support[key]);
+
+      if ($.inArray(key, re) === -1) { re.push(key); }
+    });
+
+    return re;
+  }
+
+  // ### getTransition()
+  // Returns the transition string to be used for the `transition` CSS property.
+  //
+  // Example:
+  //
+  //     getTransition({ opacity: 1, rotate: 30 }, 500, 'ease');
+  //     //=> 'opacity 500ms ease, -webkit-transform 500ms ease'
+  //
+  function getTransition(properties, duration, easing, delay) {
+    // Get the CSS properties needed.
+    var props = getProperties(properties);
+
+    // Account for aliases (`in` => `ease-in`).
+    if ($.cssEase[easing]) { easing = $.cssEase[easing]; }
+
+    // Build the duration/easing/delay attributes for it.
+    var attribs = '' + toMS(duration) + ' ' + easing;
+    if (parseInt(delay, 10) > 0) { attribs += ' ' + toMS(delay); }
+
+    // For more properties, add them this way:
+    // "margin 200ms ease, padding 200ms ease, ..."
+    var transitions = [];
+    $.each(props, function(i, name) {
+      transitions.push(name + ' ' + attribs);
+    });
+
+    return transitions.join(', ');
+  }
+
+  // ## $.fn.transition
+  // Works like $.fn.animate(), but uses CSS transitions.
+  //
+  //     $("...").transition({ opacity: 0.1, scale: 0.3 });
+  //
+  //     // Specific duration
+  //     $("...").transition({ opacity: 0.1, scale: 0.3 }, 500);
+  //
+  //     // With duration and easing
+  //     $("...").transition({ opacity: 0.1, scale: 0.3 }, 500, 'in');
+  //
+  //     // With callback
+  //     $("...").transition({ opacity: 0.1, scale: 0.3 }, function() { ... });
+  //
+  //     // With everything
+  //     $("...").transition({ opacity: 0.1, scale: 0.3 }, 500, 'in', function() { ... });
+  //
+  //     // Alternate syntax
+  //     $("...").transition({
+  //       opacity: 0.1,
+  //       duration: 200,
+  //       delay: 40,
+  //       easing: 'in',
+  //       complete: function() { /* ... */ }
+  //      });
+  //
+  $.fn.transition = $.fn.transit = function(properties, duration, easing, callback) {
+    var self  = this;
+    var delay = 0;
+    var queue = true;
+
+    var theseProperties = $.extend(true, {}, properties);
+
+    // Account for `.transition(properties, callback)`.
+    if (typeof duration === 'function') {
+      callback = duration;
+      duration = undefined;
+    }
+
+    // Account for `.transition(properties, options)`.
+    if (typeof duration === 'object') {
+      easing = duration.easing;
+      delay = duration.delay || 0;
+      queue = typeof duration.queue === "undefined" ? true : duration.queue;
+      callback = duration.complete;
+      duration = duration.duration;
+    }
+
+    // Account for `.transition(properties, duration, callback)`.
+    if (typeof easing === 'function') {
+      callback = easing;
+      easing = undefined;
+    }
+
+    // Alternate syntax.
+    if (typeof theseProperties.easing !== 'undefined') {
+      easing = theseProperties.easing;
+      delete theseProperties.easing;
+    }
+
+    if (typeof theseProperties.duration !== 'undefined') {
+      duration = theseProperties.duration;
+      delete theseProperties.duration;
+    }
+
+    if (typeof theseProperties.complete !== 'undefined') {
+      callback = theseProperties.complete;
+      delete theseProperties.complete;
+    }
+
+    if (typeof theseProperties.queue !== 'undefined') {
+      queue = theseProperties.queue;
+      delete theseProperties.queue;
+    }
+
+    if (typeof theseProperties.delay !== 'undefined') {
+      delay = theseProperties.delay;
+      delete theseProperties.delay;
+    }
+
+    // Set defaults. (`400` duration, `ease` easing)
+    if (typeof duration === 'undefined') { duration = $.fx.speeds._default; }
+    if (typeof easing === 'undefined')   { easing = $.cssEase._default; }
+
+    duration = toMS(duration);
+
+    // Build the `transition` property.
+    var transitionValue = getTransition(theseProperties, duration, easing, delay);
+
+    // Compute delay until callback.
+    // If this becomes 0, don't bother setting the transition property.
+    var work = $.transit.enabled && support.transition;
+    var i = work ? (parseInt(duration, 10) + parseInt(delay, 10)) : 0;
+
+    // If there's nothing to do...
+    if (i === 0) {
+      var fn = function(next) {
+        self.css(theseProperties);
+        if (callback) { callback.apply(self); }
+        if (next) { next(); }
+      };
+
+      callOrQueue(self, queue, fn);
+      return self;
+    }
+
+    // Save the old transitions of each element so we can restore it later.
+    var oldTransitions = {};
+
+    var run = function(nextCall) {
+      var bound = false;
+
+      // Prepare the callback.
+      var cb = function() {
+        if (bound) { self.unbind(transitionEnd, cb); }
+
+        if (i > 0) {
+          self.each(function() {
+            this.style[support.transition] = (oldTransitions[this] || null);
+          });
+        }
+
+        if (typeof callback === 'function') { callback.apply(self); }
+        if (typeof nextCall === 'function') { nextCall(); }
+      };
+
+      if ((i > 0) && (transitionEnd) && ($.transit.useTransitionEnd)) {
+        // Use the 'transitionend' event if it's available.
+        bound = true;
+        self.bind(transitionEnd, cb);
+      } else {
+        // Fallback to timers if the 'transitionend' event isn't supported.
+        window.setTimeout(cb, i);
+      }
+
+      // Apply transitions.
+      self.each(function() {
+        if (i > 0) {
+          this.style[support.transition] = transitionValue;
+        }
+        $(this).css(theseProperties);
+      });
+    };
+
+    // Defer running. This allows the browser to paint any pending CSS it hasn't
+    // painted yet before doing the transitions.
+    var deferredRun = function(next) {
+        this.offsetWidth; // force a repaint
+        run(next);
+    };
+
+    // Use jQuery's fx queue.
+    callOrQueue(self, queue, deferredRun);
+
+    // Chainability.
+    return this;
+  };
+
+  function registerCssHook(prop, isPixels) {
+    // For certain properties, the 'px' should not be implied.
+    if (!isPixels) { $.cssNumber[prop] = true; }
+
+    $.transit.propertyMap[prop] = support.transform;
+
+    $.cssHooks[prop] = {
+      get: function(elem) {
+        var t = $(elem).css('transit:transform');
+        return t.get(prop);
+      },
+
+      set: function(elem, value) {
+        var t = $(elem).css('transit:transform');
+        t.setFromString(prop, value);
+
+        $(elem).css({ 'transit:transform': t });
+      }
+    };
+
+  }
+
+  // ### uncamel(str)
+  // Converts a camelcase string to a dasherized string.
+  // (`marginLeft` => `margin-left`)
+  function uncamel(str) {
+    return str.replace(/([A-Z])/g, function(letter) { return '-' + letter.toLowerCase(); });
+  }
+
+  // ### unit(number, unit)
+  // Ensures that number `number` has a unit. If no unit is found, assume the
+  // default is `unit`.
+  //
+  //     unit(2, 'px')          //=> "2px"
+  //     unit("30deg", 'rad')   //=> "30deg"
+  //
+  function unit(i, units) {
+    if ((typeof i === "string") && (!i.match(/^[\-0-9\.]+$/))) {
+      return i;
+    } else {
+      return "" + i + units;
+    }
+  }
+
+  // ### toMS(duration)
+  // Converts given `duration` to a millisecond string.
+  //
+  // toMS('fast') => $.fx.speeds[i] => "200ms"
+  // toMS('normal') //=> $.fx.speeds._default => "400ms"
+  // toMS(10) //=> '10ms'
+  // toMS('100ms') //=> '100ms'
+  //
+  function toMS(duration) {
+    var i = duration;
+
+    // Allow string durations like 'fast' and 'slow', without overriding numeric values.
+    if (typeof i === 'string' && (!i.match(/^[\-0-9\.]+/))) { i = $.fx.speeds[i] || $.fx.speeds._default; }
+
+    return unit(i, 'ms');
+  }
+
+  // Export some functions for testable-ness.
+  $.transit.getTransitionValue = getTransition;
+
+  return $;
+}));
+
+/**
+ * jquery.calendario.js v3.2.0
+ * http://www.codrops.com
+ *
+ * Licensed under the MIT license.
+ * http://www.opensource.org/licenses/mit-license.php
+ *
+ * Copyright 2014, Codrops
+ * http://www.codrops.com
+ *
+ * || Notable Changes ||
+ * Calendario gets more flexible : Boží Ďábel (https://github.com/deviprsd21) (https://github.com/codrops/Calendario/pull/11)
+ * Multiple Events : Mattias Lyckne (https://github.com/olyckne) (https://github.com/codrops/Calendario/pull/22)
+ * Flexibility In-built : Boží Ďábel (https://github.com/deviprsd21) (https://github.com/codrops/Calendario/pull/23)
+ * Now with Time : Boží Ďábel (https://github.com/deviprsd21) (https://github.com/codrops/Calendario/pull/25)
+ */
+;(function($, window, undefined){
+  'use strict';
+
+  $.Calendario = function(options, element){
+    this.$el = $(element);
+    this._init(options);
+  };
+
+  // the options
+  $.Calendario.defaults = {
+    /*
+      you can also pass:
+      month : initialize calendar with this month (1-12). Default is today.
+      year : initialize calendar with this year. Default is today.
+      caldata : initial data/content for the calendar.
+      caldata format:
+      {
+        'MM-DD-YYYY' : 'HTML Content',
+        'MM-DD-YYYY' : 'HTML Content',
+          ...
+      }
+    */
+    weeks : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    weekabbrs : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    months : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    monthabbrs : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    displayWeekAbbr : false, // choose between values in options.weeks or options.weekabbrs
+    displayMonthAbbr : false, // choose between values in options.months or options.monthabbrs
+    startIn : 0, // left most day in the calendar (0 - Sunday, 1 - Monday, ... , 6 - Saturday)
+    events: 'click',
+    fillEmpty: false,
+    feedParser: './feed/',
+    zone: '00:00', // Ex: IST zone time is '+05:30' by default it is GMT, Sign is important.
+    checkUpdate: false //Check if any new version of Calendario is released (Details will be in the browser console)
+  };
+
+  $.Calendario.prototype = {
+    _init : function(options){
+      // options
+      this.VERSION = '3.2.0';
+      this.FIXED_DATE = new Date("10-18-2015");
+      this.UNIQUE = '%{unique}%'; //UNIQUE helps us differentiate your js from others and help us keep a track of run time.
+      this.options = $.extend(true, {}, $.Calendario.defaults, options);
+      this.today = new Date();
+      this.month = (isNaN(this.options.month) || this.options.month === null) ? this.today.getMonth() : this.options.month - 1;
+      this.year = (isNaN(this.options.year) || this.options.year === null) ? this.today.getFullYear() : this.options.year;
+      this.caldata = this.options.caldata;
+      // if hover is passed as an event then throw error if jQuery is 1.9 or above 1.9, because, hover psuedo name isn't supported
+      if(parseFloat($().jquery) >= 1.9 && this.options.events.indexOf('hover') != -1)
+        this.logError('\'hover\' psuedo-name is not supported' + ' in jQuery 1.9+. Use \'mouseenter\' \'mouseleave\' events instead.');
+
+      this.options.events = this.options.events.split(',');
+      this.options.zone = this.options.zone.charAt(0) != '+' && this.options.zone.charAt(0) != '-' ? '+' + this.options.zone : this.options.zone;
+      this._generateTemplate(true);
+      this._initEvents();
+    },
+
+    _processCaldataObj: function(value){
+      val = {date: value.date, content: value.content, startTime: '00:00', endTime: '23:59', allDay: true};
+      return val;
+    },
+
+    _processCaldata: function(caldata){
+      var self = this;
+      caldata = caldata || [];
+      $.each(caldata, function(index, value){
+        if(/^\d{2}-\d{2}-\d{4}/.test(value.date) || /^\d{2}-\d{2}-YYYY/.test(value.date) || /^\d{2}-DD-YYYY/.test(value.date) || /^MM-\d{2}-YYYY/.test(value.date) ||
+        /^\d{2}-DD-YYYY/.test(value.date) || /^MM-\d{2}-\d{4}/.test(value.date) || /^\d{2}-DD-\d{4}/.test(value.date) ||value.date == 'TODAY') {} else
+          self.logError(value.date + ' is an Invalid Date. Date should not contain spaces, should be separated by \'-\' and should be in the ' +
+          'format \'MM-DD-YYYY\'. That ain\'t that difficult!');
+        caldata[index] = self._processCaldataObj(value);
+      });
+      return caldata;
+    },
+
+    _propDate: function($cell, event){
+      var idx = $cell.index(),
+          data = {allDay : [], content: [], endTime: [], startTime: []},
+          dateProp = {
+            day : $cell.children('span.fc-date').text(),
+            month : this.month + 1,
+            monthname : this.options.displayMonthAbbr ? this.options.monthabbrs[this.month] : this.options.months[this.month],
+            year : this.year,
+            weekday : idx + this.options.startIn,
+            weekdayname : this.options.weeks[(idx==6?0:idx + this.options.startIn)]
+          };
+
+      $cell.children( 'div.fc-calendar-events').children('div.fc-calendar-event').each(function(i, e){
+        var $html = $('<div>' + $(e).html() + '</div>');
+        data.startTime[i] = new Date($html.find('time.fc-starttime').attr('datetime'));
+        data.endTime[i] = new Date($html.find('time.fc-endtime').attr('datetime'));
+        data.allDay[i] = $html.find('time.fc-allday').attr('datetime') === 'true' ? true : false;
+        $html.find('time').remove();
+        data.content[i] = $html.html();
+      });
+
+      if(dateProp.day) this.options[event]($cell, data, dateProp);
+    },
+
+    _initEvents : function() {
+      var self = this, event = [], calendarioEventNameFormat = [];
+      for(var i = 0; i < self.options.events.length; i++) {
+        event[i] = self.options.events[i].toLowerCase().trim();
+        calendarioEventNameFormat[i] = 'onDay' + event[i].charAt(0).toUpperCase() + event[i].slice(1);
+
+        if(this.options[calendarioEventNameFormat[i]] === undefined)
+          this.options[calendarioEventNameFormat[i]] = function($el, $content, dateProperties) {return false;};
+
+        this.$el.on(event[i] + '.calendario', 'div.fc-row > div', function(e) {
+          if(e.type == 'mouseenter' || e.type == 'mouseleave') e.type = $.inArray(e.type, event) == -1 ? 'hover' : e.type;
+          self._propDate($(this), calendarioEventNameFormat[$.inArray(e.type, event)]);
+        });
+      }
+      this.$el.on('shown.calendar.calendario', function(e, instance){
+        // If check update set to true, then contact calendario's update servers for details. We didn't want to slow down your code. So we
+        // check after the calendar is rendered.
+        if(instance && instance.options.checkUpdate) self._checkUpdate();
+      });
+      // newday trigger. This trigger is exactly triggered at 00:00 hours the next day with an uncertainty of 6ms.
+      this.$el.delay(new Date(this.today.getFullYear(), this.today.getMonth(), this.today.getDate() + 1, 0, 0, 0) - new Date().getTime())
+      .queue(function(){
+        self.today = new Date();
+        if(self.today.getMonth() == self.month || self.today.getMonth() + 1 == self.month) self._generateTemplate(true);
+        self.$el.trigger($.Event('newday.calendar.calendario'));
+      });
+    },
+
+    _checkUpdate : function() {
+      var self = this;
+      $.getScript("https://raw.githubusercontent.com/codrops/Calendario/master/js/update.js")
+      .done(function(script, textStatus){
+        if(calendario.current != self.version() && parseFloat(calendario.current) >= parseFloat(self.version()))
+          console.info(calendario.msg);
+      })
+      .fail(function(jqxhr, settings, exception){
+        console.error(exception);
+      });
+    },
+
+    // Calendar logic based on http://jszen.blogspot.pt/2007/03/how-to-build-simple-calendar-with.html
+    _generateTemplate : function(firstRun, callback) {
+      var head = this._getHead(),
+          body = this._getBody(),
+          rowClass;
+
+      switch(this.rowTotal) {
+        case 4 : rowClass = 'fc-four-rows'; break;
+        case 5 : rowClass = 'fc-five-rows'; break;
+        case 6 : rowClass = 'fc-six-rows'; break;
+      }
+
+      this.$cal = $('<div class="fc-calendar ' + rowClass + '">').append(head, body);
+      this.$el.find('div.fc-calendar').remove().end().append(this.$cal);
+      this.$el.find('.fc-emptydate').parent().css({'background':'transparent', 'cursor':'default'});
+
+      if(!firstRun) this.$el.trigger($.Event('shown.calendario'));
+      if(callback) callback.call();
+    },
+
+    _getHead : function() {
+      var html = '<div class="fc-head">';
+      for(var i = 0; i <= 6; i++){
+        var pos = i + this.options.startIn,
+            j = pos > 6 ? pos - 6 - 1 : pos;
+            html += '<div>' + (this.options.displayWeekAbbr ? this.options.weekabbrs[j] : this.options.weeks[j]) + '</div>';
+      }
+      return html + '</div>';
+    },
+
+    _parseDataToDay : function (data, day, other) {
+      var content = '';
+      if(!other){
+        if(Array.isArray(data)) content = this._convertDayArray(data, day);
+        else content = this._wrapDay(data, day, true);
+      }else{
+        if (!Array.isArray(data)) data = [data];
+        for(var i = 0; i < data.length; i++){
+          if(this.month != 1 && (day >= data[i].startDate) && (day <= data[i].endDate)) content += this._wrapDay(data[i], day, true);
+          else if(this.month == 1 && (day >= data[i].startDate)){
+            if(data[i].endDate && (day <= data[i].endDate)) content += this._wrapDay(data[i], day, true);
+            else if(!data[i].endDate) content += this._wrapDay(data[i], day, true);
+          }
+        }
+      }
+      return content;
+    },
+
+    _toDateTime : function(time, day, start) {
+      var zoneH = parseInt(this.options.zone.split(':')[0]),
+          zoneM = parseInt(this.options.zone.charAt(0) + this.options.zone.split(':')[1]),
+          hour = parseInt(time.split(':')[0]) - zoneH,
+          minutes = parseInt(time.split(':')[1]) - zoneM,
+          d = new Date(Date.UTC(this.year, this.month, day, hour, minutes, 0, 0));
+      if(start) {
+        var hStart = parseInt(start.split(':')[0]) - zoneH,
+            mStart = parseInt(start.split(':')[1]) - zoneM;
+        if(d.getTime() - new Date(Date.UTC(this.year, this.month, day, hStart, mStart, 0, 0)).getTime() < 0)
+            d =  new Date(Date.UTC(this.year, this.month, day + 1, hour, minutes, 0, 0));
+      }
+      return d.toISOString();
+    },
+
+    _timeHtml : function(day, date){
+      var content = day.content;
+      content += '<time class="fc-allday" datetime="' + day.allDay + '"></time>';
+      content += '<time class="fc-starttime" datetime="' + this._toDateTime(day.startTime, date) + '">' + day.startTime + '</time>';
+      content += '<time class="fc-endtime" datetime="' + this._toDateTime(day.endTime, date, day.startTime) + '">' + day.endTime + '</time>';
+      return content;
+    },
+
+    _wrapDay: function (day, date, wrap) {
+      if(date){
+        if(wrap) return '<div class="fc-calendar-event">' + this._timeHtml(day, date) + '</div>';
+        else return this._timeHtml(day, date);
+      } else return '<div class="fc-calendar-event">' + day + '</div>';
+    },
+
+    _convertDayArray: function (day, date) {
+      var wrap_days = []
+      for(var i = 0; i < day.length; i++){
+        wrap_days[i] = this._wrapDay(day[i], date, false);
+      }
+      return this._wrapDay(wrap_days.join('</div><div class="fc-calendar-event">'));
+    },
+
+    _getBody : function() {
+      var d = new Date(this.year, this.month + 1, 0),
+          monthLength = d.getDate(), // number of days in the month
+          firstDay = new Date(this.year, d.getMonth(), 1),
+          pMonthLength = new Date(this.year, this.month, 0).getDate();
+
+      // day of the week
+      this.startingDay = firstDay.getDay();
+
+      var html = '<div class="fc-body"><div class="fc-row">',
+          day = 1; // fill in the days
+
+      for (var i = 0; i < 7; i++){ // this loop is for weeks (rows)
+        for (var j = 0; j <= 6; j++) { // this loop is for weekdays (cells)
+          var pos = this.startingDay - this.options.startIn,
+              p = pos < 0 ? 6 + pos + 1 : pos,
+              inner = '',
+              today = this.month === this.today.getMonth() && this.year === this.today.getFullYear() && day === this.today.getDate(),
+              past = this.year < this.today.getFullYear() || this.month < this.today.getMonth() && this.year === this.today.getFullYear() ||
+                     this.month === this.today.getMonth() && this.year === this.today.getFullYear() && day < this.today.getDate(),
+              content = '';
+
+          if(this.options.fillEmpty && (j < p || i > 0)){
+            if(day > monthLength) {
+              inner = '<span class="fc-date fc-emptydate">' + (day - monthLength) + '</span><span class="fc-weekday">';
+              ++day;
+            } else if (day == 1) {
+              inner = '<span class="fc-date fc-emptydate">' + (pMonthLength - p + 1) + '</span><span class="fc-weekday">';
+              ++pMonthLength;
+            }
+            inner += this.options.weekabbrs[j + this.options.startIn > 6 ? j + this.options.startIn - 6 - 1 : j + this.options.startIn] + '</span>';
+          }
+          var dateString = null;
+          if (day <= monthLength && (i > 0 || j >= p)){
+            inner = '<span class="fc-date">' + day + '</span><span class="fc-weekday">' + this.options.weekabbrs[j +
+                    this.options.startIn > 6 ? j + this.options.startIn - 6 - 1 : j + this.options.startIn ] + '</span>';
+
+            var strdate = (this.month + 1 < 10 ? '0' + (this.month + 1) : this.month + 1) + '-' + (day < 10 ? '0' + day : day) + '-' + this.year,
+                dayData = this.caldata[strdate],
+                strdateyear = (this.month + 1 < 10 ? '0' + (this.month + 1) : this.month + 1) + '-' + (day < 10 ? '0' + day : day) + '-YYYY',
+                dayDataYear = this.caldata[strdateyear],
+                strdatemonth = 'MM-' + (day < 10 ? '0' + day : day) + '-' + this.year,
+                dayDataMonth = this.caldata[strdatemonth],
+                strdatemonthyear = 'MM' + '-' + (day < 10 ? '0' + day : day) + '-YYYY',
+                dayDataMonthYear = this.caldata[strdatemonthyear],
+                strdatemonthlyyear = (this.month + 1 < 10 ? '0' + (this.month + 1) : this.month + 1) + '-DD-' + this.year,
+                dayDataMonthlyYear = this.caldata[strdatemonthlyyear],
+                strdatemonthly = (this.month + 1 < 10 ? '0' + (this.month + 1) : this.month + 1) + '-DD-YYYY',
+                dayDataMonthly = this.caldata[strdatemonthly];
+
+            if(today && this.caldata.TODAY) content += this._parseDataToDay(this.caldata.TODAY, day);
+            if(dayData) content += this._parseDataToDay(dayData, day);
+            if(dayDataMonth) content += this._parseDataToDay(dayDataMonth, day);
+            if(dayDataMonthlyYear) content += this._parseDataToDay(dayDataMonthlyYear, day, true);
+            if(dayDataMonthly) content += this._parseDataToDay(dayDataMonthly, day, true);
+            if(dayDataMonthYear) content += this._parseDataToDay( dayDataMonthYear, day );
+            if(dayDataYear) content += this._parseDataToDay( dayDataYear, day );
+            if(content !== '') inner += '<div class="fc-calendar-events">' + content + '</div>';
+            dateString = (this.month + 1) + '-' + day + '-' + this.year;
+            ++day;
+          } else {
+            today = false;
+          }
+
+          var cellClasses = today ? 'fc-today ' : '';
+          if (dateString) {
+            cellClasses += dateString + ' ';
+            var inputDate = new Date(dateString);
+            var diff = inputDate.getTime() - this.FIXED_DATE.getTime();
+            if (diff >= 0) {
+                var dayDiff = Math.floor(diff / (1000 * 3600 * 24));
+                if (dayDiff % 28 < 14)
+                    cellClasses += 'alternate-color ';
+            }
+          }
+          if(past) cellClasses += 'fc-past ';
+          else cellClasses += 'fc-future ';
+
+          if(content !== '') cellClasses += 'fc-content';
+
+          html += (cellClasses !== '' ? '<div class="' + cellClasses.trim() + '">' : '<div>') + inner + '</div>';
+        }
+
+        if(day > monthLength){ // stop making rows if we've run out of days
+          this.rowTotal = i + 1;
+          break;
+        } else {
+          html += '</div><div class="fc-row">';
+        }
+      }
+      return html + '</div></div>';
+    },
+
+    _move : function(period, dir, callback){
+      if(dir === 'previous'){
+        if(period === 'month'){
+          this.year = this.month > 0 ? this.year : --this.year;
+          this.month = this.month > 0 ? --this.month : 11;
+        } else if(period === 'year') this.year = --this.year;
+      }
+      else if(dir === 'next'){
+        if(period === 'month'){
+          this.year = this.month < 11 ? this.year : ++this.year;
+          this.month = this.month < 11 ? ++this.month : 0;
+        } else if(period === 'year') this.year = ++this.year;
+      }
+      this._generateTemplate(false, callback);
+    },
+
+    /*************************
+    ***** PUBLIC METHODS *****
+    **************************/
+    option : function(option, value) {
+      if(value) this.options[option] = value;
+      else return this.options[option];
+    },
+    getYear : function(){
+      return this.year;
+    },
+    getMonth : function(){
+      return this.month + 1;
+    },
+    getMonthName : function(){
+      return this.options.displayMonthAbbr ? this.options.monthabbrs[this.month] : this.options.months[this.month];
+    },
+    // gets the cell's content div associated to a day of the current displayed month
+    // day : 1 - [28||29||30||31]
+    getCell : function(day){
+      var row = Math.floor((day + this.startingDay - this.options.startIn - 1) / 7),
+          pos = day + this.startingDay - this.options.startIn - (row * 7) - 1;
+      return this.$cal.find('div.fc-body').children('div.fc-row').eq(row).children('div').eq(pos);
+    },
+    setData : function(caldata, clear) {
+      caldata = this._processCaldata(caldata);
+      if(clear) this.caldata = caldata;
+      else $.extend(this.caldata, caldata);
+      this._generateTemplate(false);
+    },
+    // goes to today's month/year
+    gotoNow : function(callback) {
+      this.month = this.today.getMonth();
+      this.year = this.today.getFullYear();
+      this._generateTemplate(false, callback);
+    },
+    // goes to month/year
+    gotoMonth : function(month, year, callback){
+      this.month = month - 1;
+      this.year = year;
+      this._generateTemplate(false, callback);
+    },
+    gotoPreviousMonth : function(callback){
+      this._move('month', 'previous', callback);
+    },
+    gotoPreviousYear : function(callback){
+      this._move('year', 'previous', callback);
+    },
+    gotoNextMonth : function(callback){
+      this._move('month', 'next', callback);
+    },
+    gotoNextYear : function(callback){
+      this._move('year', 'next', callback);
+    },
+    feed : function(callback){
+      var self = this;
+      $.post(self.options.feedParser, {dates: this.caldata})
+      .always(function(data){
+        if(callback) callback.call(this, JSON.parse(data).hevent);
+      });
+    },
+    version : function() {
+      return this.VERSION;
+    }
+  };
+
+  var logError = function(message){
+    throw new Error(message);
+  };
+
+  $.fn.calendario = function(options) {
+    var instance = $.data(this, 'calendario');
+    if(typeof options === 'string'){
+      var args = Array.prototype.slice.call(arguments, 1);
+      this.each(function(){
+        if(!instance){
+          logError("Cannot call methods on calendario prior to initialization; Attempted to call method '" + options + "'");
+          return;
+        }
+        if (!$.isFunction(instance[options]) || options.charAt(0) === "_"){
+          logError("No such method '" + options + "' for calendario instance.");
+        }
+        instance[options].apply(instance, args);
+      });
+    } else {
+      this.each(function(){
+        if (instance) instance._init();
+        else instance = $.data(this, 'calendario', new $.Calendario(options, this));
+      });
+    }
+    instance.$el.trigger($.Event('shown.calendar.calendario'), [instance]);
+    return instance;
+  };
+})(jQuery, window);
+
+var DateFormat = {};
+
+(function($) {
+  var daysInWeek          = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var shortDaysInWeek     = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var shortMonthsInYear   = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var longMonthsInYear    = ['January', 'February', 'March', 'April', 'May', 'June',
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+  var shortMonthsToNumber = { 'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
+                              'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12' };
+
+  var YYYYMMDD_MATCHER = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.?\d{0,3}[Z\-+]?(\d{2}:?\d{2})?/;
+
+  $.format = (function() {
+    function numberToLongDay(value) {
+      // 0 to Sunday
+      // 1 to Monday
+      return daysInWeek[parseInt(value, 10)] || value;
+    }
+
+    function numberToShortDay(value) {
+      // 0 to Sun
+      // 1 to Mon
+      return shortDaysInWeek[parseInt(value, 10)] || value;
+    }
+
+    function numberToShortMonth(value) {
+      // 1 to Jan
+      // 2 to Feb
+      var monthArrayIndex = parseInt(value, 10) - 1;
+      return shortMonthsInYear[monthArrayIndex] || value;
+    }
+
+    function numberToLongMonth(value) {
+      // 1 to January
+      // 2 to February
+      var monthArrayIndex = parseInt(value, 10) - 1;
+      return longMonthsInYear[monthArrayIndex] || value;
+    }
+
+    function shortMonthToNumber(value) {
+      // Jan to 01
+      // Feb to 02
+      return shortMonthsToNumber[value] || value;
+    }
+
+    function parseTime(value) {
+      // 10:54:50.546
+      // => hour: 10, minute: 54, second: 50, millis: 546
+      // 10:54:50
+      // => hour: 10, minute: 54, second: 50, millis: ''
+      var time = value,
+          hour,
+          minute,
+          second,
+          millis = '',
+          delimited,
+          timeArray;
+
+      if(time.indexOf('.') !== -1) {
+        delimited = time.split('.');
+        // split time and milliseconds
+        time   = delimited[0];
+        millis = delimited[delimited.length - 1];
+      }
+
+      timeArray = time.split(':');
+
+      if(timeArray.length === 3) {
+        hour   = timeArray[0];
+        minute = timeArray[1];
+        // '20 GMT-0200 (BRST)'.replace(/\s.+/, '').replace(/[a-z]/gi, '');
+        // => 20
+        // '20Z'.replace(/\s.+/, '').replace(/[a-z]/gi, '');
+        // => 20
+        second = timeArray[2].replace(/\s.+/, '').replace(/[a-z]/gi, '');
+        // '01:10:20 GMT-0200 (BRST)'.replace(/\s.+/, '').replace(/[a-z]/gi, '');
+        // => 01:10:20
+        // '01:10:20Z'.replace(/\s.+/, '').replace(/[a-z]/gi, '');
+        // => 01:10:20
+        time = time.replace(/\s.+/, '').replace(/[a-z]/gi, '');
+        return {
+          time:    time,
+          hour:    hour,
+          minute:  minute,
+          second:  second,
+          millis:  millis
+        };
+      }
+
+      return { time : '', hour : '', minute : '', second : '', millis : '' };
+    }
+
+
+    function padding(value, length) {
+      var paddingCount = length - String(value).length;
+      for(var i = 0; i < paddingCount; i++) {
+        value = '0' + value;
+      }
+      return value;
+    }
+
+    return {
+
+      parseDate: function(value) {
+        var values,
+            subValues;
+
+        var parsedDate = {
+          date:       null,
+          year:       null,
+          month:      null,
+          dayOfMonth: null,
+          dayOfWeek:  null,
+          time:       null
+        };
+
+        if(typeof value == 'number') {
+          return this.parseDate(new Date(value));
+        } else if(typeof value.getFullYear == 'function') {
+          parsedDate.year       = String(value.getFullYear());
+          // d = new Date(1900, 1, 1) // 1 for Feb instead of Jan.
+          // => Thu Feb 01 1900 00:00:00
+          parsedDate.month      = String(value.getMonth() + 1);
+          parsedDate.dayOfMonth = String(value.getDate());
+          parsedDate.time       = parseTime(value.toTimeString() + "." + value.getMilliseconds());
+        } else if(value.search(YYYYMMDD_MATCHER) != -1) {
+          /* 2009-04-19T16:11:05+02:00 || 2009-04-19T16:11:05Z */
+          values = value.split(/[T\+-]/);
+          parsedDate.year       = values[0];
+          parsedDate.month      = values[1];
+          parsedDate.dayOfMonth = values[2];
+          parsedDate.time       = parseTime(values[3].split('.')[0]);
+        } else {
+          values = value.split(' ');
+          if(values.length === 6 && isNaN(values[5])) {
+            // values[5] == year
+            /*
+             * This change is necessary to make `Mon Apr 28 2014 05:30:00 GMT-0300` work
+             * like `case 7`
+             * otherwise it will be considered like `Wed Jan 13 10:43:41 CET 2010
+             * Fixes: https://github.com/phstc/jquery-dateFormat/issues/64
+             */
+            values[values.length] = '()';
+          }
+          switch (values.length) {
+            case 6:
+              /* Wed Jan 13 10:43:41 CET 2010 */
+              parsedDate.year       = values[5];
+              parsedDate.month      = shortMonthToNumber(values[1]);
+              parsedDate.dayOfMonth = values[2];
+              parsedDate.time       = parseTime(values[3]);
+              break;
+            case 2:
+              /* 2009-12-18 10:54:50.546 */
+              subValues = values[0].split('-');
+              parsedDate.year       = subValues[0];
+              parsedDate.month      = subValues[1];
+              parsedDate.dayOfMonth = subValues[2];
+              parsedDate.time       = parseTime(values[1]);
+              break;
+            case 7:
+              /* Tue Mar 01 2011 12:01:42 GMT-0800 (PST) */
+            case 9:
+              /* added by Larry, for Fri Apr 08 2011 00:00:00 GMT+0800 (China Standard Time) */
+            case 10:
+              /* added by Larry, for Fri Apr 08 2011 00:00:00 GMT+0200 (W. Europe Daylight Time) */
+              parsedDate.year       = values[3];
+              parsedDate.month      = shortMonthToNumber(values[1]);
+              parsedDate.dayOfMonth = values[2];
+              parsedDate.time       = parseTime(values[4]);
+              break;
+            case 1:
+              /* added by Jonny, for 2012-02-07CET00:00:00 (Doctrine Entity -> Json Serializer) */
+              subValues = values[0].split('');
+              parsedDate.year       = subValues[0] + subValues[1] + subValues[2] + subValues[3];
+              parsedDate.month      = subValues[5] + subValues[6];
+              parsedDate.dayOfMonth = subValues[8] + subValues[9];
+              parsedDate.time       = parseTime(subValues[13] + subValues[14] + subValues[15] + subValues[16] + subValues[17] + subValues[18] + subValues[19] + subValues[20]);
+              break;
+            default:
+              return null;
+          }
+        }
+
+        if(parsedDate.time) {
+          parsedDate.date = new Date(parsedDate.year, parsedDate.month - 1, parsedDate.dayOfMonth, parsedDate.time.hour, parsedDate.time.minute, parsedDate.time.second, parsedDate.time.millis);
+        } else {
+          parsedDate.date = new Date(parsedDate.year, parsedDate.month - 1, parsedDate.dayOfMonth);
+        }
+
+        parsedDate.dayOfWeek = String(parsedDate.date.getDay());
+
+        return parsedDate;
+      },
+
+      date : function(value, format) {
+        try {
+          var parsedDate = this.parseDate(value);
+
+          if(parsedDate === null) {
+            return value;
+          }
+
+          var year       = parsedDate.year,
+              month      = parsedDate.month,
+              dayOfMonth = parsedDate.dayOfMonth,
+              dayOfWeek  = parsedDate.dayOfWeek,
+              time       = parsedDate.time;
+          var hour;
+
+          var pattern      = '',
+              retValue     = '',
+              unparsedRest = '',
+              inQuote      = false;
+
+          /* Issue 1 - variable scope issue in format.date (Thanks jakemonO) */
+          for(var i = 0; i < format.length; i++) {
+            var currentPattern = format.charAt(i);
+            // Look-Ahead Right (LALR)
+            var nextRight      = format.charAt(i + 1);
+
+            if (inQuote) {
+              if (currentPattern == "'") {
+                retValue += (pattern === '') ? "'" : pattern;
+                pattern = '';
+                inQuote = false;
+              } else {
+                pattern += currentPattern;
+              }
+              continue;
+            }
+            pattern += currentPattern;
+            unparsedRest = '';
+            switch (pattern) {
+              case 'ddd':
+                retValue += numberToLongDay(dayOfWeek);
+                pattern = '';
+                break;
+              case 'dd':
+                if(nextRight === 'd') {
+                  break;
+                }
+                retValue += padding(dayOfMonth, 2);
+                pattern = '';
+                break;
+              case 'd':
+                if(nextRight === 'd') {
+                  break;
+                }
+                retValue += parseInt(dayOfMonth, 10);
+                pattern = '';
+                break;
+              case 'D':
+                if(dayOfMonth == 1 || dayOfMonth == 21 || dayOfMonth == 31) {
+                  dayOfMonth = parseInt(dayOfMonth, 10) + 'st';
+                } else if(dayOfMonth == 2 || dayOfMonth == 22) {
+                  dayOfMonth = parseInt(dayOfMonth, 10) + 'nd';
+                } else if(dayOfMonth == 3 || dayOfMonth == 23) {
+                  dayOfMonth = parseInt(dayOfMonth, 10) + 'rd';
+                } else {
+                  dayOfMonth = parseInt(dayOfMonth, 10) + 'th';
+                }
+                retValue += dayOfMonth;
+                pattern = '';
+                break;
+              case 'MMMM':
+                retValue += numberToLongMonth(month);
+                pattern = '';
+                break;
+              case 'MMM':
+                if(nextRight === 'M') {
+                  break;
+                }
+                retValue += numberToShortMonth(month);
+                pattern = '';
+                break;
+              case 'MM':
+                if(nextRight === 'M') {
+                  break;
+                }
+                retValue += padding(month, 2);
+                pattern = '';
+                break;
+              case 'M':
+                if(nextRight === 'M') {
+                  break;
+                }
+                retValue += parseInt(month, 10);
+                pattern = '';
+                break;
+              case 'y':
+              case 'yyy':
+                if(nextRight === 'y') {
+                  break;
+                }
+                retValue += pattern;
+                pattern = '';
+                break;
+              case 'yy':
+                if(nextRight === 'y') {
+                  break;
+                }
+                retValue += String(year).slice(-2);
+                pattern = '';
+                break;
+              case 'yyyy':
+                retValue += year;
+                pattern = '';
+                break;
+              case 'HH':
+                retValue += padding(time.hour, 2);
+                pattern = '';
+                break;
+              case 'H':
+                if(nextRight === 'H') {
+                  break;
+                }
+                retValue += parseInt(time.hour, 10);
+                pattern = '';
+                break;
+              case 'hh':
+                /* time.hour is '00' as string == is used instead of === */
+                hour = (parseInt(time.hour, 10) === 0 ? 12 : time.hour < 13 ? time.hour
+                    : time.hour - 12);
+                retValue += padding(hour, 2);
+                pattern = '';
+                break;
+              case 'h':
+                if(nextRight === 'h') {
+                  break;
+                }
+                hour = (parseInt(time.hour, 10) === 0 ? 12 : time.hour < 13 ? time.hour
+                    : time.hour - 12);
+                retValue += parseInt(hour, 10);
+                // Fixing issue https://github.com/phstc/jquery-dateFormat/issues/21
+                // retValue = parseInt(retValue, 10);
+                pattern = '';
+                break;
+              case 'mm':
+                retValue += padding(time.minute, 2);
+                pattern = '';
+                break;
+              case 'm':
+                if(nextRight === 'm') {
+                  break;
+                }
+                retValue += time.minute;
+                pattern = '';
+                break;
+              case 'ss':
+                /* ensure only seconds are added to the return string */
+                retValue += padding(time.second.substring(0, 2), 2);
+                pattern = '';
+                break;
+              case 's':
+                if(nextRight === 's') {
+                  break;
+                }
+                retValue += time.second;
+                pattern = '';
+                break;
+              case 'S':
+              case 'SS':
+                if(nextRight === 'S') {
+                  break;
+                }
+                retValue += pattern;
+                pattern = '';
+                break;
+              case 'SSS':
+                var sss = '000' + time.millis.substring(0, 3);
+                retValue +=  sss.substring(sss.length - 3);
+                pattern = '';
+                break;
+              case 'a':
+                retValue += time.hour >= 12 ? 'PM' : 'AM';
+                pattern = '';
+                break;
+              case 'p':
+                retValue += time.hour >= 12 ? 'p.m.' : 'a.m.';
+                pattern = '';
+                break;
+              case 'E':
+                retValue += numberToShortDay(dayOfWeek);
+                pattern = '';
+                break;
+              case "'":
+                pattern = '';
+                inQuote = true;
+                break;
+              default:
+                retValue += currentPattern;
+                pattern = '';
+                break;
+            }
+          }
+          retValue += unparsedRest;
+          return retValue;
+        } catch (e) {
+          if(console && console.log) {
+            console.log(e);
+          }
+          return value;
+        }
+      },
+      /*
+       * JavaScript Pretty Date
+       * Copyright (c) 2011 John Resig (ejohn.org)
+       * Licensed under the MIT and GPL licenses.
+       *
+       * Takes an ISO time and returns a string representing how long ago the date
+       * represents
+       *
+       * ('2008-01-28T20:24:17Z') // => '2 hours ago'
+       * ('2008-01-27T22:24:17Z') // => 'Yesterday'
+       * ('2008-01-26T22:24:17Z') // => '2 days ago'
+       * ('2008-01-14T22:24:17Z') // => '2 weeks ago'
+       * ('2007-12-15T22:24:17Z') // => 'more than 5 weeks ago'
+       *
+       */
+      prettyDate : function(time) {
+        var date;
+        var diff;
+        var day_diff;
+
+        if(typeof time === 'string' || typeof time === 'number') {
+          date = new Date(time);
+        }
+
+        if(typeof time === 'object') {
+          date = new Date(time.toString());
+        }
+
+        diff = (((new Date()).getTime() - date.getTime()) / 1000);
+
+        day_diff = Math.floor(diff / 86400);
+
+        if(isNaN(day_diff) || day_diff < 0) {
+          return;
+        }
+
+        if(diff < 60) {
+          return 'just now';
+        } else if(diff < 120) {
+          return '1 minute ago';
+        } else if(diff < 3600) {
+          return Math.floor(diff / 60) + ' minutes ago';
+        } else if(diff < 7200) {
+          return '1 hour ago';
+        } else if(diff < 86400) {
+          return Math.floor(diff / 3600) + ' hours ago';
+        } else if(day_diff === 1) {
+          return 'Yesterday';
+        } else if(day_diff < 7) {
+          return day_diff + ' days ago';
+        } else if(day_diff < 31) {
+          return Math.ceil(day_diff / 7) + ' weeks ago';
+        } else if(day_diff >= 31) {
+          return 'more than 5 weeks ago';
+        }
+      },
+      toBrowserTimeZone : function(value, format) {
+        return this.date(new Date(value), format || 'MM/dd/yyyy HH:mm:ss');
+      }
+    };
+  }());
+}(DateFormat));
+;// require dateFormat.js
+// please check `dist/jquery.dateFormat.js` for a complete version
+(function($) {
+  $.format = DateFormat.format;
+}(jQuery));
+
+var cwrepos = {};
+
+cwrepos.config = function (ctrl) {
+    return function (element, isInitialized) {
+        var el = $(element);
+
+        if (!isInitialized) {
+            if (ctrl.notLoaded()) {
+                var today = new Date();
+                for (var i = 0; i < 5; i++)
+                    ctrl.yearList.push(today.getFullYear() + i);
+
+                if (ctrl.token) {
+                    ctrl.initialize();
+                }
+                else {
+                    m.route("/");
+                }
+            }
+        }
+    };
+};
+
+cwrepos.view = function (ctrl) {
+    var mainCtrl = cwapp.mainController;
+    return [
+      m("#wrapper", [
+          m("#repo-list.collection with-header", { config: cwrepos.config(mainCtrl) }, [
+              m(".collection-header", "Choose calendar"),
+              mainCtrl.repos().map(function (item) {
+                  if (item.name.substring(item.name.lastIndexOf(".")) == ".cw")
+                      return m("a.collection-item", { href: "#", onclick: function () { mainCtrl.setRepo(item.full_name); } }, item.name.substring(0, item.name.indexOf(".")));
+              })
+          ])
+      ]),
+      m("#loading", [
+          m(".progress", [
+              m(".indeterminate")
+          ])
+      ]),
+      m("#modal.modal modal-fixed-footer", [
+          m("#modal-content.modal-content", [
+
+          ]),
+          m("#modal-footer.modal-footer", [
+
+          ])
+      ])
+    ];
+};
+
+var cwform = {};
+
+cwform.config = function (ctrl) {
+    return function (element, isInitialized) {
+        var el = $(element);
+
+        if (!isInitialized) {
+          $(".datepicker").each(function (index) {
+              $(this).pickadate({
+                  selected: $(this).attr("data-value"),
+                  format: "m/d/yyyy"
+              });
+          });
+        }
+    };
+};
+
+cwform.view = function (ctrl) {
+    return m("form.form-content col s12 scrollable", { config: cwform.config(ctrl) }, [
+        m("h5", "Create Event"),
+        m(".row", [
+            m(".col s12 m12", [
+                m("label", "Event Type"),
+                m("select.browser-default", { value: ctrl.calendarItem.message(), onchange: m.withAttr("value", ctrl.calendarItem.message) },
+                ctrl.eventList.map(function (type) {
+                    return m('option', { 'value': type }, type);
+                }))
+            ])
+        ]),
+        m(".row", [
+            m(".col s12 m12", [
+                m("label", "Start Date"),
+                m("input.datepicker", { type: "date", "data-value": ctrl.calendarItem.startDate(), onchange: m.withAttr("value", ctrl.calendarItem.startDate) })
+            ])
+        ]),
+        m(".row", [
+            m(".col s12 m12", [
+                m("label", "End Date"),
+                m("input.datepicker", { type: "date", "data-value": ctrl.calendarItem.endDate(), onchange: m.withAttr("value", ctrl.calendarItem.endDate) })
+            ])
+        ])
+    ]);
+};
+
+cwform.footer = function (ctrl) {
+    return [
+        m("a#modal-action.modal-action modal-close waves-effect btn-flat", { onclick: ctrl.closeModal, href: "#" }, "Close"),
+        m("a#modal-action.modal-action modal-close waves-effect btn-flat", { onclick: ctrl.saveItem, href: "#" }, "Save")
+    ];
+};
+
+var cwcalendar = {};
+
+cwcalendar.config = function (ctrl) {
+    return function (element, isInitialized) {
+        var el = $(element);
+
+        if (!isInitialized) {
+            var mainCtrl = cwapp.mainController;
+            if (mainCtrl.notLoaded()) {
+                var today = new Date();
+                for (var i = 0; i < 5; i++)
+                    mainCtrl.yearList.push(today.getFullYear() + i);
+
+                if (mainCtrl.token) {
+                    mainCtrl.initialize();
+                }
+                else {
+                    m.route("/");
+                }
+            }
+            else {
+                ctrl.buildCalendar(el);
+            }
+        }
+    };
+};
+
+cwcalendar.controller = function () {
+    this.mainCtrl = cwapp.mainController;
+
+    this.closeModal = function () {
+        if (!this.mainCtrl.modalOpen())
+            return;
+
+        $("#modal").closeModal();
+        this.mainCtrl.modalOpen(false);
+        return false;
+    }.bind(this);
+
+    this.buildCalendar = function (element) {
+        this.mainCtrl.showProgress();
+        $('.dropdown-button').dropdown({
+            inDuration: 300,
+            outDuration: 225,
+            constrain_width: false,
+            hover: false,
+            gutter: 0,
+            belowOrigin: false
+        });
+        this.mainCtrl.calendar = element.calendario( {
+          onDayClick : function( $el, $contentEl, dateProperties ) {
+            var date = new Date(dateProperties.month + "/" + dateProperties.day + "/" + dateProperties.year).getTime();
+            this.openItemWithDate({ message: "Request Off", startDate: date, endDate: date });
+          }.bind(this),
+          caldata : []
+        });
+        this.updateMonthYear();
+        this.mainCtrl.hideProgress();
+    }.bind(this);
+
+    this.updateMonthYear = function () {
+        this.mainCtrl.showProgress();
+        this.mainCtrl.lastSync.setTime(0);
+        this.mainCtrl.items = [];
+        $("#custom-month").text( this.mainCtrl.calendar.getMonthName() );
+        $("#custom-year").text( this.mainCtrl.calendar.getYear() );
+        $("#dropdown1 li").removeClass("active");
+        $("#dropdown1 li#" + this.mainCtrl.calendar.getMonthName()).addClass("active");
+        $("#dropdown2 li").removeClass("active");
+        $("#dropdown2 li#" + this.mainCtrl.calendar.getYear()).addClass("active");
+        this.mainCtrl.getIssues()
+          .then(this.mainCtrl.buildIssues.bind(this.mainCtrl), this.mainCtrl.apiError)
+          .then(this.mainCtrl.updateItems.bind(this.mainCtrl))
+          .then(this.mainCtrl.buildPopups.bind(this.mainCtrl))
+          .then(this.mainCtrl.hideProgress);
+    }.bind(this);
+
+    this.openItem = function () {
+        m.render(document.getElementById("modal-content"), "");
+        this.mainCtrl.openModal();
+        this.mainCtrl.calendarItem = new CalendarItem();
+        m.render(document.getElementById("modal-footer"), cwform.footer(this));
+        m.render(document.getElementById("modal-content"), cwform.view(this.mainCtrl));
+        return false;
+    }.bind(this);
+
+    this.openItemWithDate = function (data) {
+        if (this.mainCtrl.popupOpen())
+          return;
+
+        m.render(document.getElementById("modal-content"), "");
+        this.mainCtrl.openModal();
+        this.mainCtrl.calendarItem = new CalendarItem(data);
+        m.render(document.getElementById("modal-footer"), cwform.footer(this));
+        m.render(document.getElementById("modal-content"), cwform.view(this.mainCtrl));
+    }.bind(this);
+
+    this.saveItem = function () {
+        this.mainCtrl.showProgress();
+        var start = new Date(this.mainCtrl.calendarItem.startDate());
+        var end = new Date(this.mainCtrl.calendarItem.endDate());
+        var timeDiff = Math.abs(end.getTime() - start.getTime());
+        var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        for (var i = 0; i <= diffDays; i++) {
+            var date = new Date();
+            date.setTime(start.getTime());
+            date.setDate(date.getDate()+i);
+            this.mainCtrl.createIssue(date).then(function (result) {
+              this.closeModal();
+              var item = this.mainCtrl.insertItem(result);
+              this.mainCtrl.addItem(item, this.mainCtrl.items.length - 1);
+              this.mainCtrl.items.push(item);
+              this.mainCtrl.buildPopups();
+            }.bind(this), this.mainCtrl.apiError);
+        }
+        this.mainCtrl.hideProgress();
+        return false;
+    }.bind(this);
+
+};
+
+cwcalendar.view = function (ctrl) {
+    var mainCtrl = cwapp.mainController;
+    return [
+      m("#wrapper", [
+            m("#action-bar", [
+              m("#action-bar-left", [
+                  m("img#cal-logo", { src: "images/clockwork.png" }),
+                  m(".chip", mainCtrl.repo().substring(mainCtrl.repo().indexOf("/") + 1, mainCtrl.repo().indexOf("."))),
+                  m("span#mobile-actions", [
+                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Create Item", onclick: ctrl.openItem }, [
+                          m("i.fa fa-calendar-plus-o left")
+                      ]),
+                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Refresh Data", onclick: function () {
+                            mainCtrl.calendar.gotoMonth(mainCtrl.calendar.getMonth(), mainCtrl.calendar.getYear(), ctrl.updateMonthYear);
+                            return false;
+                          }}, [
+                          m("i.fa fa-refresh left")
+                      ]),
+                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Switch Calendar", onclick: mainCtrl.switchCalendar }, [
+                          m("i.fa fa-calendar-check-o left")
+                      ]),
+                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Sign Out", onclick: mainCtrl.signOut.bind(mainCtrl) }, [
+                          m("i.fa fa-user-times right")
+                      ])
+                  ])
+              ]),
+              m("#custom-month-year", [
+                  m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Previous Month", onclick: function() {
+                    mainCtrl.calendar.gotoPreviousMonth( ctrl.updateMonthYear );
+                    return false;
+                  } }, [
+                      m("i.fa fa-chevron-left left")
+                  ]),
+                  m("a#custom-month.dropdown-button btn-flat", { href: "#", title: "Select Month", "data-activates": "dropdown1" }, ""),
+                  m("ul#dropdown1.dropdown-content", { style: "width:150px;" }, [
+                      mainCtrl.monthList.map(function (item, index) {
+                        return m("li", { id: item }, [
+                            m("a[href='javascript:void(0)']", { onclick: function () {
+                                mainCtrl.calendar.gotoMonth(index + 1, mainCtrl.calendar.getYear(), ctrl.updateMonthYear);
+                            } }, item)
+                        ]);
+                      })
+                  ]),
+                  m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Next Month", onclick: function() {
+                    mainCtrl.calendar.gotoNextMonth( ctrl.updateMonthYear );
+                    return false;
+                  } }, [
+                      m("i.fa fa-chevron-right right")
+                  ]),
+                  m("a#custom-year.dropdown-button btn-flat", { href: "#", title: "Select Year", "data-activates": "dropdown2" }, ""),
+                  m("ul#dropdown2.dropdown-content", { style: "width:100px;" }, [
+                      mainCtrl.yearList.map(function (item) {
+                        return m("li", { id: item }, [
+                            m("a[href='javascript:void(0)']", { onclick: function () {
+                                mainCtrl.calendar.gotoMonth(mainCtrl.calendar.getMonth(), item, ctrl.updateMonthYear);
+                            } }, item)
+                        ]);
+                      })
+                  ]),
+                  m("span#actions", [
+                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Create Item", onclick: ctrl.openItem }, [
+                          m("i.fa fa-calendar-plus-o left")
+                      ]),
+                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Refresh Data", onclick: function () {
+                            mainCtrl.calendar.gotoMonth(mainCtrl.calendar.getMonth(), mainCtrl.calendar.getYear(), ctrl.updateMonthYear);
+                            return false;
+                          }}, [
+                          m("i.fa fa-refresh left")
+                      ]),
+                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Switch Calendar", onclick: mainCtrl.switchCalendar }, [
+                          m("i.fa fa-calendar-check-o left")
+                      ]),
+                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Sign Out", onclick: mainCtrl.signOut.bind(mainCtrl) }, [
+                          m("i.fa fa-user-times right")
+                      ])
+                  ])
+              ])
+            ]),
+            m("#calendar.fc-calendar-container", { config: cwcalendar.config(ctrl) })
+      ]),
+      m("#loading", [
+          m(".progress", [
+              m(".indeterminate")
+          ])
+      ]),
+      m("#modal.modal modal-fixed-footer", [
+          m("#modal-content.modal-content", [
+
+          ]),
+          m("#modal-footer.modal-footer", [
+
+          ])
+      ])
+    ];
+};
 
 var cwapp = {};
 
@@ -20479,322 +20092,3 @@ m.route(document.body, "/", {
     "/repo": cwrepos,
     "/calendar/:path...": cwcalendar
 });
-
-var cwcalendar = {};
-
-cwcalendar.config = function (ctrl) {
-    return function (element, isInitialized) {
-        var el = $(element);
-
-        if (!isInitialized) {
-            var mainCtrl = cwapp.mainController;
-            if (mainCtrl.notLoaded()) {
-                var today = new Date();
-                for (var i = 0; i < 5; i++)
-                    mainCtrl.yearList.push(today.getFullYear() + i);
-
-                if (mainCtrl.token) {
-                    mainCtrl.initialize();
-                }
-                else {
-                    m.route("/");
-                }
-            }
-            else {
-                ctrl.buildCalendar(el);
-            }
-        }
-    };
-};
-
-cwcalendar.controller = function () {
-    this.mainCtrl = cwapp.mainController;
-
-    this.closeModal = function () {
-        if (!this.mainCtrl.modalOpen())
-            return;
-
-        $("#modal").closeModal();
-        this.mainCtrl.modalOpen(false);
-        return false;
-    }.bind(this);
-
-    this.buildCalendar = function (element) {
-        this.mainCtrl.showProgress();
-        $('.dropdown-button').dropdown({
-            inDuration: 300,
-            outDuration: 225,
-            constrain_width: false,
-            hover: false,
-            gutter: 0,
-            belowOrigin: false
-        });
-        this.mainCtrl.calendar = element.calendario( {
-          onDayClick : function( $el, $contentEl, dateProperties ) {
-            var date = new Date(dateProperties.month + "/" + dateProperties.day + "/" + dateProperties.year).getTime();
-            this.openItemWithDate({ message: "Request Off", startDate: date, endDate: date });
-          }.bind(this),
-          caldata : []
-        });
-        this.updateMonthYear();
-        this.mainCtrl.hideProgress();
-    }.bind(this);
-
-    this.updateMonthYear = function () {
-        this.mainCtrl.showProgress();
-        this.mainCtrl.lastSync.setTime(0);
-        this.mainCtrl.items = [];
-        $("#custom-month").text( this.mainCtrl.calendar.getMonthName() );
-        $("#custom-year").text( this.mainCtrl.calendar.getYear() );
-        $("#dropdown1 li").removeClass("active");
-        $("#dropdown1 li#" + this.mainCtrl.calendar.getMonthName()).addClass("active");
-        $("#dropdown2 li").removeClass("active");
-        $("#dropdown2 li#" + this.mainCtrl.calendar.getYear()).addClass("active");
-        this.mainCtrl.getIssues()
-          .then(this.mainCtrl.buildIssues.bind(this.mainCtrl), this.mainCtrl.apiError)
-          .then(this.mainCtrl.updateItems.bind(this.mainCtrl))
-          .then(this.mainCtrl.buildPopups.bind(this.mainCtrl))
-          .then(this.mainCtrl.hideProgress);
-    }.bind(this);
-
-    this.openItem = function () {
-        m.render(document.getElementById("modal-content"), "");
-        this.mainCtrl.openModal();
-        this.mainCtrl.calendarItem = new CalendarItem();
-        m.render(document.getElementById("modal-footer"), cwform.footer(this));
-        m.render(document.getElementById("modal-content"), cwform.view(this.mainCtrl));
-        return false;
-    }.bind(this);
-
-    this.openItemWithDate = function (data) {
-        if (this.mainCtrl.popupOpen())
-          return;
-
-        m.render(document.getElementById("modal-content"), "");
-        this.mainCtrl.openModal();
-        this.mainCtrl.calendarItem = new CalendarItem(data);
-        m.render(document.getElementById("modal-footer"), cwform.footer(this));
-        m.render(document.getElementById("modal-content"), cwform.view(this.mainCtrl));
-    }.bind(this);
-
-    this.saveItem = function () {
-        this.mainCtrl.showProgress();
-        var start = new Date(this.mainCtrl.calendarItem.startDate());
-        var end = new Date(this.mainCtrl.calendarItem.endDate());
-        var timeDiff = Math.abs(end.getTime() - start.getTime());
-        var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
-        for (var i = 0; i <= diffDays; i++) {
-            var date = new Date();
-            date.setTime(start.getTime());
-            date.setDate(date.getDate()+i);
-            this.mainCtrl.createIssue(date).then(function (result) {
-              this.closeModal();
-              var item = this.mainCtrl.insertItem(result);
-              this.mainCtrl.addItem(item, this.mainCtrl.items.length - 1);
-              this.mainCtrl.items.push(item);
-              this.mainCtrl.buildPopups();
-            }.bind(this), this.mainCtrl.apiError);
-        }
-        this.mainCtrl.hideProgress();
-        return false;
-    }.bind(this);
-
-};
-
-cwcalendar.view = function (ctrl) {
-    var mainCtrl = cwapp.mainController;
-    return [
-      m("#wrapper", [
-            m("#action-bar", [
-              m("#action-bar-left", [
-                  m("img#cal-logo", { src: "images/clockwork.png" }),
-                  m(".chip", mainCtrl.repo().substring(mainCtrl.repo().indexOf("/") + 1, mainCtrl.repo().indexOf("."))),
-                  m("span#mobile-actions", [
-                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Create Item", onclick: ctrl.openItem }, [
-                          m("i.fa fa-calendar-plus-o left")
-                      ]),
-                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Refresh Data", onclick: function () {
-                            mainCtrl.calendar.gotoMonth(mainCtrl.calendar.getMonth(), mainCtrl.calendar.getYear(), ctrl.updateMonthYear);
-                            return false;
-                          }}, [
-                          m("i.fa fa-refresh left")
-                      ]),
-                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Switch Calendar", onclick: mainCtrl.switchCalendar }, [
-                          m("i.fa fa-calendar-check-o left")
-                      ]),
-                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Sign Out", onclick: mainCtrl.signOut.bind(mainCtrl) }, [
-                          m("i.fa fa-user-times right")
-                      ])
-                  ])
-              ]),
-              m("#custom-month-year", [
-                  m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Previous Month", onclick: function() {
-                    mainCtrl.calendar.gotoPreviousMonth( ctrl.updateMonthYear );
-                    return false;
-                  } }, [
-                      m("i.fa fa-chevron-left left")
-                  ]),
-                  m("a#custom-month.dropdown-button btn-flat", { href: "#", title: "Select Month", "data-activates": "dropdown1" }, ""),
-                  m("ul#dropdown1.dropdown-content", { style: "width:150px;" }, [
-                      mainCtrl.monthList.map(function (item, index) {
-                        return m("li", { id: item }, [
-                            m("a[href='javascript:void(0)']", { onclick: function () {
-                                mainCtrl.calendar.gotoMonth(index + 1, mainCtrl.calendar.getYear(), ctrl.updateMonthYear);
-                            } }, item)
-                        ]);
-                      })
-                  ]),
-                  m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Next Month", onclick: function() {
-                    mainCtrl.calendar.gotoNextMonth( ctrl.updateMonthYear );
-                    return false;
-                  } }, [
-                      m("i.fa fa-chevron-right right")
-                  ]),
-                  m("a#custom-year.dropdown-button btn-flat", { href: "#", title: "Select Year", "data-activates": "dropdown2" }, ""),
-                  m("ul#dropdown2.dropdown-content", { style: "width:100px;" }, [
-                      mainCtrl.yearList.map(function (item) {
-                        return m("li", { id: item }, [
-                            m("a[href='javascript:void(0)']", { onclick: function () {
-                                mainCtrl.calendar.gotoMonth(mainCtrl.calendar.getMonth(), item, ctrl.updateMonthYear);
-                            } }, item)
-                        ]);
-                      })
-                  ]),
-                  m("span#actions", [
-                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Create Item", onclick: ctrl.openItem }, [
-                          m("i.fa fa-calendar-plus-o left")
-                      ]),
-                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Refresh Data", onclick: function () {
-                            mainCtrl.calendar.gotoMonth(mainCtrl.calendar.getMonth(), mainCtrl.calendar.getYear(), ctrl.updateMonthYear);
-                            return false;
-                          }}, [
-                          m("i.fa fa-refresh left")
-                      ]),
-                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Switch Calendar", onclick: mainCtrl.switchCalendar }, [
-                          m("i.fa fa-calendar-check-o left")
-                      ]),
-                      m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Sign Out", onclick: mainCtrl.signOut.bind(mainCtrl) }, [
-                          m("i.fa fa-user-times right")
-                      ])
-                  ])
-              ])
-            ]),
-            m("#calendar.fc-calendar-container", { config: cwcalendar.config(ctrl) })
-      ]),
-      m("#loading", [
-          m(".progress", [
-              m(".indeterminate")
-          ])
-      ]),
-      m("#modal.modal modal-fixed-footer", [
-          m("#modal-content.modal-content", [
-
-          ]),
-          m("#modal-footer.modal-footer", [
-
-          ])
-      ])
-    ];
-};
-
-var cwform = {};
-
-cwform.config = function (ctrl) {
-    return function (element, isInitialized) {
-        var el = $(element);
-
-        if (!isInitialized) {
-          $(".datepicker").each(function (index) {
-              $(this).pickadate({
-                  selected: $(this).attr("data-value"),
-                  format: "m/d/yyyy"
-              });
-          });
-        }
-    };
-};
-
-cwform.view = function (ctrl) {
-    return m("form.form-content col s12 scrollable", { config: cwform.config(ctrl) }, [
-        m("h5", "Create Event"),
-        m(".row", [
-            m(".col s12 m12", [
-                m("label", "Event Type"),
-                m("select.browser-default", { value: ctrl.calendarItem.message(), onchange: m.withAttr("value", ctrl.calendarItem.message) },
-                ctrl.eventList.map(function (type) {
-                    return m('option', { 'value': type }, type);
-                }))
-            ])
-        ]),
-        m(".row", [
-            m(".col s12 m12", [
-                m("label", "Start Date"),
-                m("input.datepicker", { type: "date", "data-value": ctrl.calendarItem.startDate(), onchange: m.withAttr("value", ctrl.calendarItem.startDate) })
-            ])
-        ]),
-        m(".row", [
-            m(".col s12 m12", [
-                m("label", "End Date"),
-                m("input.datepicker", { type: "date", "data-value": ctrl.calendarItem.endDate(), onchange: m.withAttr("value", ctrl.calendarItem.endDate) })
-            ])
-        ])
-    ]);
-};
-
-cwform.footer = function (ctrl) {
-    return [
-        m("a#modal-action.modal-action modal-close waves-effect btn-flat", { onclick: ctrl.closeModal, href: "#" }, "Close"),
-        m("a#modal-action.modal-action modal-close waves-effect btn-flat", { onclick: ctrl.saveItem, href: "#" }, "Save")
-    ];
-};
-
-var cwrepos = {};
-
-cwrepos.config = function (ctrl) {
-    return function (element, isInitialized) {
-        var el = $(element);
-
-        if (!isInitialized) {
-            if (ctrl.notLoaded()) {
-                var today = new Date();
-                for (var i = 0; i < 5; i++)
-                    ctrl.yearList.push(today.getFullYear() + i);
-
-                if (ctrl.token) {
-                    ctrl.initialize();
-                }
-                else {
-                    m.route("/");
-                }
-            }
-        }
-    };
-};
-
-cwrepos.view = function (ctrl) {
-    var mainCtrl = cwapp.mainController;
-    return [
-      m("#wrapper", [
-          m("#repo-list.collection with-header", { config: cwrepos.config(mainCtrl) }, [
-              m(".collection-header", "Choose calendar"),
-              mainCtrl.repos().map(function (item) {
-                  if (item.name.substring(item.name.lastIndexOf(".")) == ".cw")
-                      return m("a.collection-item", { href: "#", onclick: function () { mainCtrl.setRepo(item.full_name); } }, item.name.substring(0, item.name.indexOf(".")));
-              })
-          ])
-      ]),
-      m("#loading", [
-          m(".progress", [
-              m(".indeterminate")
-          ])
-      ]),
-      m("#modal.modal modal-fixed-footer", [
-          m("#modal-content.modal-content", [
-
-          ]),
-          m("#modal-footer.modal-footer", [
-
-          ])
-      ])
-    ];
-};
