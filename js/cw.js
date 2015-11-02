@@ -20273,6 +20273,8 @@ cwcalendar.controller = function () {
         });
         this.mainCtrl.calendar = element.calendario( {
           onDayClick : function( $el, $contentEl, dateProperties ) {
+            if (this.mainCtrl.repo().full_name == "uk-pulmapp/posted-calendar.cw" && !this.mainCtrl.repo().permissions.admin)
+                return;
             var date = new Date(dateProperties.month + "/" + dateProperties.day + "/" + dateProperties.year).getTime();
             this.openItemWithDate({ message: "Request Off", startDate: date, endDate: date });
           }.bind(this),
@@ -20374,6 +20376,8 @@ cwcalendar.view = function (ctrl) {
                   mainCtrl.repo() ?
                       m(".chip", mainCtrl.repo().name.substring(0, mainCtrl.repo().name.indexOf("."))) : "",
                   m("span#mobile-actions", [
+                      mainCtrl.repo().full_name == "uk-pulmapp/posted-calendar.cw" && !mainCtrl.repo().permissions.admin ?
+                      "" :
                       m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Create Item", onclick: ctrl.openItem }, [
                           m("i.fa fa-calendar-plus-o left")
                       ]),
@@ -20425,6 +20429,8 @@ cwcalendar.view = function (ctrl) {
                       })
                   ]),
                   m("span#actions", [
+                      mainCtrl.repo().full_name == "uk-pulmapp/posted-calendar.cw" && !mainCtrl.repo().permissions.admin ?
+                      "" :
                       m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Create Item", onclick: ctrl.openItem }, [
                           m("i.fa fa-calendar-plus-o left")
                       ]),
