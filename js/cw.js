@@ -20129,7 +20129,7 @@ cwrepos.view = function (ctrl) {
               m(".collection-header", "Choose calendar"),
               mainCtrl.repos().map(function (item) {
                   if (item.name.substring(item.name.lastIndexOf(".")) == ".cw")
-                      return m("a.collection-item", { href: "#", onclick: function () { mainCtrl.setRepo(item.full_name); } }, item.name.substring(0, item.name.indexOf(".")));
+                      return m("a.collection-item", { href: "#", onclick: function () { mainCtrl.setRepo(item); } }, item.name.substring(0, item.name.indexOf(".")));
               })
           ])
       ]),
@@ -20169,27 +20169,49 @@ cwform.config = function (ctrl) {
 cwform.view = function (ctrl) {
     return m("form.form-content col s12 scrollable", { config: cwform.config(ctrl) }, [
         m("h5", "Create Event"),
+        ctrl.repo().full_name == "uk-pulmapp/request-calendar.cw" ?
         m(".row", [
             m(".col s12 m12", [
-                m("label", "Event Type"),
+                m("label", "Type"),
                 m("select.browser-default", { value: ctrl.calendarItem.message(), onchange: m.withAttr("value", ctrl.calendarItem.message) },
                 ctrl.eventList.map(function (type) {
                     return m('option', { 'value': type }, type);
                 }))
             ])
-        ]),
+        ]) : "",
+        ctrl.repo().full_name == "uk-pulmapp/posted-calendar.cw" ?
+        m(".row", [
+            m(".col s12 m12", [
+                m("label", "Name"),
+                m("select.browser-default", { value: ctrl.calendarItem.user(), onchange: m.withAttr("value", ctrl.calendarItem.user) },
+                ctrl.userList.map(function (type) {
+                    return m('option', { 'value': type.name ? type.name : type.login }, type.name ? type.name : type.login);
+                }))
+            ])
+        ]) : "",
+        ctrl.repo().full_name == "uk-pulmapp/posted-calendar.cw" ?
+        m(".row", [
+            m(".col s12 m12", [
+                m("label", "Shift"),
+                m("select.browser-default", { value: ctrl.calendarItem.message(), onchange: m.withAttr("value", ctrl.calendarItem.message) },
+                ctrl.ampmList.map(function (type) {
+                    return m('option', { 'value': type }, type);
+                }))
+            ])
+        ]) : "",
         m(".row", [
             m(".col s12 m12", [
                 m("label", "Start Date"),
                 m("input.datepicker", { type: "date", "data-value": ctrl.calendarItem.startDate(), onchange: m.withAttr("value", ctrl.calendarItem.startDate) })
             ])
         ]),
+        ctrl.repo().full_name == "uk-pulmapp/request-calendar.cw" ?
         m(".row", [
             m(".col s12 m12", [
                 m("label", "End Date"),
                 m("input.datepicker", { type: "date", "data-value": ctrl.calendarItem.endDate(), onchange: m.withAttr("value", ctrl.calendarItem.endDate) })
             ])
-        ])
+        ]) : ""
     ]);
 };
 
@@ -20281,6 +20303,15 @@ cwcalendar.controller = function () {
         m.render(document.getElementById("modal-content"), "");
         this.mainCtrl.openModal();
         this.mainCtrl.calendarItem = new CalendarItem();
+        this.mainCtrl.calendarItem.user(this.mainCtrl.user().login);
+        if (this.mainCtrl.user().name)
+            this.mainCtrl.calendarItem.user(this.mainCtrl.user().name);
+        if (this.mainCtrl.repo().full_name == "uk-pulmapp/posted-calendar.cw") {
+            this.mainCtrl.calendarItem.message("AM");
+            this.mainCtrl.calendarItem.user(this.mainCtrl.userList[0].login);
+            if (this.mainCtrl.userList[0].name)
+                this.mainCtrl.calendarItem.user(this.mainCtrl.userList[0].name);
+        }
         m.render(document.getElementById("modal-footer"), cwform.footer(this));
         m.render(document.getElementById("modal-content"), cwform.view(this.mainCtrl));
         return false;
@@ -20293,6 +20324,15 @@ cwcalendar.controller = function () {
         m.render(document.getElementById("modal-content"), "");
         this.mainCtrl.openModal();
         this.mainCtrl.calendarItem = new CalendarItem(data);
+        this.mainCtrl.calendarItem.user(this.mainCtrl.user().login);
+        if (this.mainCtrl.user().name)
+            this.mainCtrl.calendarItem.user(this.mainCtrl.user().name);
+        if (this.mainCtrl.repo().full_name == "uk-pulmapp/posted-calendar.cw") {
+            this.mainCtrl.calendarItem.message("AM");
+            this.mainCtrl.calendarItem.user(this.mainCtrl.userList[0].login);
+            if (this.mainCtrl.userList[0].name)
+                this.mainCtrl.calendarItem.user(this.mainCtrl.userList[0].name);
+        }
         m.render(document.getElementById("modal-footer"), cwform.footer(this));
         m.render(document.getElementById("modal-content"), cwform.view(this.mainCtrl));
     }.bind(this);
@@ -20301,6 +20341,9 @@ cwcalendar.controller = function () {
         this.mainCtrl.showProgress();
         var start = new Date(this.mainCtrl.calendarItem.startDate());
         var end = new Date(this.mainCtrl.calendarItem.endDate());
+        if (this.mainCtrl.repo().full_name == "uk-pulmapp/posted-calendar.cw") {
+            end = start;
+        }
         var timeDiff = Math.abs(end.getTime() - start.getTime());
         var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
         for (var i = 0; i <= diffDays; i++) {
@@ -20328,7 +20371,8 @@ cwcalendar.view = function (ctrl) {
             m("#action-bar", [
               m("#action-bar-left", [
                   m("img#cal-logo", { src: "images/clockwork.png" }),
-                  m(".chip", mainCtrl.repo().substring(mainCtrl.repo().indexOf("/") + 1, mainCtrl.repo().indexOf("."))),
+                  mainCtrl.repo() ?
+                      m(".chip", mainCtrl.repo().name.substring(0, mainCtrl.repo().name.indexOf("."))) : "",
                   m("span#mobile-actions", [
                       m("a.waves-effect waves-light btn-flat btn-small", { href: "#", title: "Create Item", onclick: ctrl.openItem }, [
                           m("i.fa fa-calendar-plus-o left")
@@ -20449,8 +20493,9 @@ cwapp.config = function (ctrl) {
 };
 
 var CalendarItem = function (data) {
-    data = data || { message: "Request Off", startDate: new Date().getTime(), endDate: new Date().getTime() };
+    data = data || { message: "Request Off", user: "", ampm: "AM", startDate: new Date().getTime(), endDate: new Date().getTime() };
     this.message = m.prop(data.message);
+    this.user = m.prop(data.user);
     this.startDate = m.prop(data.startDate);
     this.endDate = m.prop(data.endDate);
 };
@@ -20461,6 +20506,8 @@ cwapp.mainController = {
     monthList: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
     yearList: [],
     eventList: ["Request Off", "Vacation", "Education", "Days", "Nights", "Admin"],
+    ampmList: ["AM", "PM"],
+    userList: [],
     calendar: null,
     repos: m.prop([]),
     repo: m.prop(""),
@@ -20475,6 +20522,8 @@ cwapp.mainController = {
     initialize: function () {
       this.getUser()
         .then(this.user, this.showLogin)
+        .then(this.listUsers.bind(this))
+        .then(this.buildUserList.bind(this), this.apiError)
         .then(this.getRepos.bind(this))
         .then(this.repos, this.apiError)
         .then(this.renderRoute.bind(this))
@@ -20492,17 +20541,20 @@ cwapp.mainController = {
                 });
             });
         }
-        else if (m.route() == "/repo") {
+        else if (m.route() == "/repo" && this.repo()) {
             $("#wrapper").transition({ opacity: 0, delay: 100 }, function () {
-                m.route("/calendar/" + this.repo());
+                m.route("/calendar/" + this.repo().full_name);
                 $("#wrapper").transition({ opacity: 1, delay: 100 }, function () {
                     $(".progress").css("display", "none");
                 });
             }.bind(this));
         }
         else if (m.route().substring(0, 9) == "/calendar") {
-            this.repo(m.route.param("path"));
-            m.route("/calendar/" + this.repo());
+            for (var i in this.repos()) {
+                if (this.repos()[i].full_name == m.route.param("path"))
+                    this.repo(this.repos()[i]);
+            }
+            m.route("/calendar/" + this.repo().full_name);
         }
         else
             $(".progress").css("display", "none");
@@ -20586,6 +20638,35 @@ cwapp.mainController = {
         });
     },
 
+    listUsers: function () {
+        return m.request({
+            method: "GET",
+            url: "https://api.github.com/orgs/uk-pulmapp/members",
+            config: function (xhr, options) {
+                xhr.setRequestHeader("Authorization", "Token " + this.token);
+            }.bind(this)
+        });
+    },
+
+    getUserByLogin: function (username) {
+        return m.request({
+            method: "GET",
+            url: "https://api.github.com/users/" + username,
+            config: function (xhr, options) {
+                xhr.setRequestHeader("Authorization", "Token " + this.token);
+            }.bind(this)
+        });
+    },
+
+    buildUserList: function (result) {
+        for (var i in result) {
+            this.getUserByLogin(result[i].login)
+              .then(function (user) {
+                  this.userList.push(user);
+              }.bind(this));
+        }
+    },
+
     apiError: function (error) {
         $(".progress").css("display", "none");
         Materialize.toast(error.message, 4000);
@@ -20600,7 +20681,7 @@ cwapp.mainController = {
     getIssues: function () {
         return m.request({
             method: "GET",
-            url: "https://api.github.com/repos/" + this.repo() + "/issues?per_page=100",
+            url: "https://api.github.com/repos/" + this.repo().full_name + "/issues?per_page=100",
             data: {
                 labels: this.calendar.getMonthName() + "," + this.calendar.getYear(),
                 sort: 'created',
@@ -20650,12 +20731,12 @@ cwapp.mainController = {
       if (item.deleted)
         return;
 
-      var names = item.user.name.split(" ");
       var initials = "";
+      var abbr = "";
+      var names = item.user.name.split(" ");
       for (var i in names)
           initials += names[i].charAt(0).toUpperCase();
       var message = item.message.split(" ");
-      var abbr = "";
       for (var j in message)
           abbr += message[j].charAt(0).toUpperCase();
 
@@ -20667,26 +20748,41 @@ cwapp.mainController = {
 
     buildPopups: function () {
       ctrl = this;
+      var popupDisplay = function () {
+          var i = $(this).attr("id");
+          var popover = '<div><table class="striped"><tbody>' +
+          '<tr><td>Name</td><td>' + ctrl.items[i].user.name + '</td></tr>' +
+          '<tr><td>Type</td><td>' + ctrl.items[i].message + '</td></tr>' +
+          '<tr><td>Created</td><td>' + $.format.date(ctrl.items[i].created, "M/d/yyyy h:mm:ss a") + '</td></tr>' +
+          '</tody></table>';
+
+          if (ctrl.user().login == ctrl.items[i].user.login)
+              popover += '<a class="waves-effect waves-light btn red delete-btn" onclick="ctrl.deleteItem(' + i + ')">Delete</a>';
+
+          popover += '</div>';
+          return $(popover).html();
+      };
+      if (this.repo().full_name == "uk-pulmapp/posted-calendar.cw") {
+          popupDisplay = function () {
+              var i = $(this).attr("id");
+              var popover = '<div><table class="striped"><tbody>' +
+              '<tr><td>Name</td><td>' + ctrl.items[i].user.name + '</td></tr>' +
+              '<tr><td>Shift</td><td>' + ctrl.items[i].message + '</td></tr>' +
+              '</tody></table>';
+
+              if (ctrl.repo().permissions.admin)
+                  popover += '<a class="waves-effect waves-light btn red delete-btn" onclick="ctrl.deleteItem(' + i + ')">Delete</a>';
+
+              popover += '</div>';
+              return $(popover).html();
+          };
+      }
       $('[data-toggle="popover"]').popover({
         html: true,
         container: 'body',
         placement: 'auto top',
         trigger: 'focus',
-        content: function() {
-            var i = $(this).attr("id");
-            var popover = '<div><table class="striped"><tbody>' +
-            '<tr><td>Name</td><td>' + ctrl.items[i].user.name + '</td></tr>' +
-            '<tr><td>Message</td><td>' + ctrl.items[i].message + '</td></tr>' +
-            '<tr><td>Login</td><td>' + ctrl.items[i].user.login + '</td></tr>' +
-            '<tr><td>Created</td><td>' + $.format.date(ctrl.items[i].created, "M/d/yyyy h:mm:ss a") + '</td></tr>' +
-            '</tody></table>';
-
-            if (ctrl.user().login == ctrl.items[i].user.login)
-                popover += '<a class="waves-effect waves-light btn red delete-btn" onclick="ctrl.deleteItem(' + i + ')">Delete</a>';
-
-            popover += '</div>';
-            return $(popover).html();
-        }
+        content: popupDisplay
       });
       $('[data-toggle="popover"]').popover().click( function (e) {
         e.stopPropagation();
@@ -20736,7 +20832,7 @@ cwapp.mainController = {
     closeIssue: function (issue) {
         return m.request({
             method: "PATCH",
-            url: "https://api.github.com/repos/" + this.repo() + "/issues/" + issue,
+            url: "https://api.github.com/repos/" + this.repo().full_name + "/issues/" + issue,
             data: {
               state: "closed"
             },
@@ -20749,10 +20845,10 @@ cwapp.mainController = {
     createIssue: function (date) {
         return m.request({
             method: "POST",
-            url: "https://api.github.com/repos/" + this.repo() + "/issues",
+            url: "https://api.github.com/repos/" + this.repo().full_name + "/issues",
             data: {
               title: this.calendarItem.message(),
-              body: '{"name":"' + this.user().name + '", "date":' + date.getTime() + '}',
+              body: '{"name":"' + this.calendarItem.user() + '", "date":' + date.getTime() + '}',
               labels: [this.calendar.getMonthName(), this.calendar.getYear().toString()]
             },
             config: function (xhr, options) {
