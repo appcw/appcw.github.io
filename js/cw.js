@@ -20129,7 +20129,7 @@ cwrepos.view = function (ctrl) {
               m(".collection-header", "Choose calendar"),
               mainCtrl.repos().map(function (item) {
                   if (item.name.substring(item.name.lastIndexOf(".")) == ".cw")
-                      return m("a.collection-item", { href: "#", onclick: function () { mainCtrl.setRepo(item); } }, item.name.substring(0, item.name.indexOf(".")));
+                      return m("a.collection-item", { href: "#", onclick: function () { mainCtrl.setRepo(item); return false; } }, item.name.substring(0, item.name.indexOf(".")));
               })
           ])
       ]),
@@ -20677,7 +20677,6 @@ cwapp.mainController = {
     setRepo: function(item) {
         this.repo(item);
         this.renderRoute();
-        return false;
     },
 
     getIssues: function () {
