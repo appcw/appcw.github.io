@@ -20795,11 +20795,9 @@ cwapp.mainController = {
       });
       $('[data-toggle="popover"]').on('show.bs.popover', function () {
         ctrl.popupOpen(true);
-        ctrl.activeItem = ctrl.items[$(this).attr('id')];
       });
       $('[data-toggle="popover"]').on('hidden.bs.popover', function () {
         this.popupOpen(false);
-        this.activeItem = null;
       }.bind(this));
     },
 
@@ -20825,7 +20823,7 @@ cwapp.mainController = {
     deleteItem: function (index) {
         var result = confirm("Confirm delete?");
         if (result) {
-          var item = this.activeItem;
+          var item = this.items[index];
           this.showProgress();
           this.closeIssue(item.number).then(function (result) {
               item.deleted = true;
