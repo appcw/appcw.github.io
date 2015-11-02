@@ -20168,7 +20168,7 @@ cwform.config = function (ctrl) {
 
 cwform.view = function (ctrl) {
     return m("form.form-content col s12 scrollable", { config: cwform.config(ctrl) }, [
-        m("h5", "Create Event"),
+        m("h5", "Create Item"),
         ctrl.repo().full_name == "uk-pulmapp/request-calendar.cw" ?
         m(".row", [
             m(".col s12 m12", [
@@ -20205,13 +20205,12 @@ cwform.view = function (ctrl) {
                 m("input.datepicker", { type: "date", "data-value": ctrl.calendarItem.startDate(), onchange: m.withAttr("value", ctrl.calendarItem.startDate) })
             ])
         ]),
-        ctrl.repo().full_name == "uk-pulmapp/request-calendar.cw" ?
         m(".row", [
             m(".col s12 m12", [
                 m("label", "End Date"),
                 m("input.datepicker", { type: "date", "data-value": ctrl.calendarItem.endDate(), onchange: m.withAttr("value", ctrl.calendarItem.endDate) })
             ])
-        ]) : ""
+        ])
     ]);
 };
 
@@ -20343,9 +20342,6 @@ cwcalendar.controller = function () {
         this.mainCtrl.showProgress();
         var start = new Date(this.mainCtrl.calendarItem.startDate());
         var end = new Date(this.mainCtrl.calendarItem.endDate());
-        if (this.mainCtrl.repo().full_name == "uk-pulmapp/posted-calendar.cw") {
-            end = start;
-        }
         var timeDiff = Math.abs(end.getTime() - start.getTime());
         var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
         for (var i = 0; i <= diffDays; i++) {
