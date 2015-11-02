@@ -20128,7 +20128,7 @@ cwrepos.view = function (ctrl) {
           m("#repo-list.collection with-header", { config: cwrepos.config(mainCtrl) }, [
               m(".collection-header", "Choose calendar"),
               mainCtrl.repos().map(function (item) {
-                  if (item.name.substring(item.name.lastIndexOf(".")) == ".cw")
+                  if (item.owner.login == "uk-pulmapp" && item.name.substring(item.name.lastIndexOf(".")) == ".cw")
                       return m("a.collection-item", { href: "#", onclick: function () { mainCtrl.setRepo(item); return false; } }, item.name.substring(0, item.name.indexOf(".")));
               })
           ])
